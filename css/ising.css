@@ -1,0 +1,16 @@
+/* Ising Playground — page-specific styles, on top of css/theme.css */
+
+.page-main{max-width:900px;margin:0 auto;padding:20px 5% 90px;position:relative;z-index:2}
+
+.ising-panel{display:flex;flex-wrap:wrap;align-items:center;gap:20px;margin-bottom:28px;padding:20px 22px;background:#fff;border:4px solid #1a1a1a;box-shadow:8px 8px 0 #4cc9f0}
+.ising-label{display:flex;flex-direction:column;gap:6px;font-family:'Press Start 2P',monospace;font-size:10px;color:#1a1a1a}
+.ising-label input[type="range"]{width:min(100%,220px);accent-color:#4cc9f0}
+.ising-t-readout{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:400;color:#4a463c;letter-spacing:0}
+.ising-btnrow{display:flex;gap:12px}
+.ising-stats{width:100%;font-size:14px;color:#4a463c}
+.ising-stats code{font-weight:600;color:#1a1a1a}
+
+.ising-hint{font-size:13px;color:#8a8578;margin:0 0 14px}
+
+.ising-canvas-wrap{width:min(90vmin,28rem);max-width:100%;margin:0 auto;padding:10px;border:4px solid #1a1a1a;background:#0a0a12;box-shadow:8px 8px 0 #1a1a1a}
+#ising-canvas{display:block;width:100%;height:auto;aspect-ratio:1;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair}

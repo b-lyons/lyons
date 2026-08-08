@@ -1,96 +1,231 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="keywords" content="">
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0">
-    <link rel="shortcut icon" type="image/png" href="favicon.png">
-    
-	<link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css">
-	<link rel="stylesheet" type="text/css" href="style.css">
-	<link rel="stylesheet" href="./css/animate.min.css">
-    
-	<script src="./js/jquery-2.1.0.min.js"></script>
-	<script src="./js/bootstrap.min.js"></script>
-	<script src="./js/blocs.min.js"></script>
-    <title>Home</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lyons.io</title>
+<meta name="description" content="Lyons.io — music, code, and pixel experiments by Bill Lyons / Mirrorsky.">
+<link rel="shortcut icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#fdfaf3;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:#ffd23f;color:#1a1a1a}
 
-    
-<!-- Google Analytics -->
- 
-<!-- Google Analytics END -->
-    
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-14px) rotate(20deg)}}
+  @keyframes bob2{0%,100%{transform:translateY(0)}50%{transform:translateY(12px)}}
+  @keyframes glowpulse{0%,100%{text-shadow:5px 5px 0 #4cc9f0}50%{text-shadow:5px 5px 0 #ff2e88,-2px -2px 0 #4cc9f0}}
+
+  .bg-wrap{position:relative;min-height:100vh;overflow:hidden;background-image:radial-gradient(#1a1a1a12 1.5px, transparent 1.5px);background-size:22px 22px}
+  .dot{position:absolute}
+  .scanlines{position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.025) 3px 4px);mix-blend-mode:multiply}
+
+  nav{display:flex;align-items:center;justify-content:space-between;padding:24px 5%;position:relative;z-index:2}
+  .brand{font-family:'Press Start 2P',monospace;font-size:15px;color:#1a1a1a;display:flex;align-items:center;gap:10px}
+  .brand-mark{width:16px;height:16px;background:#ff2e88;border:3px solid #1a1a1a}
+  .navlinks{display:flex;gap:28px;font-size:13px;font-weight:600;color:#1a1a1a}
+  .navlink{border-bottom:2px solid transparent;padding-bottom:2px}
+
+  header.hero{text-align:center;padding:72px 5% 40px;position:relative;z-index:2}
+  .titlemark{display:inline-block;font-family:'Press Start 2P',monospace;font-size:clamp(28px,6vw,56px);line-height:1.4;color:#1a1a1a;animation:glowpulse 3s ease-in-out infinite}
+
+  main{max-width:1100px;margin:0 auto;padding:20px 5% 90px;position:relative;z-index:2}
+  .section-label-row{display:flex;align-items:center;gap:14px;margin-bottom:32px}
+  .section-label{font-family:'Press Start 2P',monospace;font-size:13px;color:#1a1a1a}
+  .dash-rule{flex:1;height:4px;background:repeating-linear-gradient(90deg,#1a1a1a 0 8px,transparent 8px 16px)}
+
+  .about{margin:0 0 64px;max-width:60ch;font-size:16px;line-height:1.7;color:#4a463c}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:28px}
+  .card{position:relative;display:flex;flex-direction:column;height:100%;background:#fff;border:4px solid #1a1a1a;box-shadow:8px 8px 0 var(--accent);transition:transform .15s,box-shadow .15s}
+  .card-image{width:100%;height:170px;flex:none;overflow:hidden;background:#1a1a2e}
+  .card-image img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:auto}
+  .card-image.img-contain{display:flex;align-items:center;justify-content:center}
+  .card-image.img-contain img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}
+  .card-thumb{width:100%;height:100%}
+  .card-body{flex:1;min-height:150px;padding:16px 18px 20px;border-top:4px solid #1a1a1a}
+  .card-label{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--label);margin-bottom:8px;transition:text-shadow .15s}
+  .card-desc{font-size:14px;color:#4a463c;line-height:1.5}
+  .cta{margin-top:14px;display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--cta-text);font-size:11px;font-weight:700;padding:8px 14px;border:2px solid #1a1a1a;box-shadow:3px 3px 0 #1a1a1a;transition:transform .1s,box-shadow .1s}
+
+  /* CSS-pattern thumbnail, no image asset needed */
+  .thumb-ising{background-color:#1a1a2e;background-image:linear-gradient(90deg,#e8e6f2 50%,#0a0a12 50%);background-size:12px 12px;image-rendering:pixelated}
+
+  footer{border-top:4px solid #1a1a1a;padding:28px 5%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;position:relative;z-index:2;background:#fff}
+  .copyright{font-size:12px;color:#8a8578}
+  .socials{display:flex;gap:16px}
+  .social-icon{width:28px;height:28px;border:2px solid #1a1a1a;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+
+  /* Hover-only microinteractions — gated so touch devices don't get stuck in a tapped :hover state */
+  @media (hover: hover) and (pointer: fine) {
+    .navlink:hover{border-bottom-color:var(--nav-accent)}
+    .card:hover{transform:translate(-4px,-4px);box-shadow:12px 12px 0 var(--accent)}
+    .card:hover .card-label{text-shadow:2px 0 var(--glitch1),-2px 0 var(--glitch2)}
+    .cta:hover{transform:translate(3px,3px);box-shadow:0 0 0 #1a1a1a}
+    .social-icon:hover{background:var(--hover)}
+  }
+</style>
 </head>
 <body>
-<!-- Main container -->
-<div class="page-container">
-    
-<!-- bloc-0 -->
-<div class="bloc bgc-white l-bloc sticky-nav" id="bloc-0">
-	<div class="container bloc-sm">
-		<nav class="navbar row">
-			<div class="navbar-header">
-				<button id="nav-toggle" type="button" class="ui-navbar-toggle navbar-toggle" data-toggle="collapse" data-target=".navbar-1">
-					<span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
-				</button>
-			</div>
-			<div class="navbar-collapse navbar-1 collapse">
-				<ul class="site-navigation nav navbar-nav">
-					<li>
-						<a href="index.html">Lyons.IO</a>
-					</li>
-				</ul>
-			</div>
-		</nav>
-	</div>
-</div>
-<!-- bloc-0 END -->
 
-<!-- bloc-1 -->
-<div class="bloc bgc-white l-bloc" id="bloc-1">
-	<div class="container bloc-lg">
-		<div class="row">
-			<div class="col-sm-12">
-				<img class="img-responsive center-block" src="img/Asset%201.png" height="523" width="807" />
-			</div>
-		</div>
-	</div>
-</div>
-<!-- bloc-1 END -->
+<div class="bg-wrap">
 
-<!-- Footer - bloc-2 -->
-<div class="bloc l-bloc bgc-white" id="bloc-2">
-	<div class="container bloc-lg">
-		<div class="row">
-			<div class="col-sm-3">
-				<h3 class="mg-md bloc-mob-center-text">
-					About
-				</h3><a href="index.html" class="a-btn a-block bloc-mob-center-text">CV</a><a href="index.html" class="a-btn a-block bloc-mob-center-text">LinkedIn</a>
-			</div>
-			<div class="col-sm-3">
-				<h3 class="mg-md bloc-mob-center-text">
-					Publications
-				</h3><a href="index.html" class="a-btn a-block bloc-mob-center-text">Numerical Methods</a><a href="index.html" class="a-btn a-block bloc-mob-center-text">Finance</a>
-			</div>
-			<div class="col-sm-3">
-				<h3 class="mg-md bloc-mob-center-text">
-					Follow Me
-				</h3><a href="index.html" class="a-btn a-block bloc-mob-center-text">Instagram</a><a href="index.html" class="a-btn a-block bloc-mob-center-text">Facebook</a>
-			</div>
-			<div class="col-sm-3">
-				<h3 class="mg-md bloc-mob-center-text">
-					Legal
-				</h3><a href="index.html" class="a-btn a-block bloc-mob-center-text">Terms of use</a><a href="index.html" class="a-btn a-block bloc-mob-center-text">Privacy</a>
-			</div>
-		</div>
-	</div>
-</div>
-<!-- Footer - bloc-2 END -->
+  <div class="dot" style="top:64px;left:6%;width:14px;height:14px;background:#4cc9f0;animation:bob 3.2s ease-in-out infinite"></div>
+  <div class="dot" style="top:120px;right:9%;width:10px;height:10px;background:#ff5a5f;animation:bob2 2.6s ease-in-out infinite"></div>
+  <div class="dot" style="top:300px;left:3%;width:10px;height:10px;background:#ffb703;animation:bob 4s ease-in-out infinite .4s"></div>
+  <div class="dot" style="bottom:120px;right:5%;width:16px;height:16px;background:#7c3aed;animation:bob2 3.6s ease-in-out infinite .2s"></div>
+  <div class="dot" style="top:220px;right:20%;width:8px;height:8px;background:#34c759;animation:bob 2.9s ease-in-out infinite .6s"></div>
+  <div class="dot" style="bottom:260px;left:10%;width:12px;height:12px;background:#ff2e88;animation:bob2 3.1s ease-in-out infinite .3s"></div>
+  <div class="scanlines" aria-hidden="true"></div>
 
+  <nav aria-label="Primary">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"></div>
+      LYONS.IO
+    </div>
+    <div class="navlinks">
+      <a href="#work" class="navlink" style="--nav-accent:#ff2e88">WORK</a>
+      <a href="#about" class="navlink" style="--nav-accent:#4cc9f0">ABOUT</a>
+      <a href="#contact" class="navlink" style="--nav-accent:#ffb703">CONTACT</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="titlemark">LYONS.IO</div>
+  </header>
+
+  <main id="main">
+    <section id="about" aria-labelledby="about-heading">
+      <div class="section-label-row">
+        <span id="about-heading" class="section-label">ABOUT</span>
+        <div class="dash-rule" aria-hidden="true"></div>
+      </div>
+      <p class="about">
+        This is a hub for the things I build and make: web experiments and code sketches live here,
+        and music and releases go out under
+        <a href="https://mirrorsky.com" style="text-decoration:underline">Mirrorsky</a>.
+        Have a look around below.
+      </p>
+    </section>
+
+    <section id="work" aria-labelledby="work-heading">
+      <div class="section-label-row">
+        <span id="work-heading" class="section-label">PROJECTS</span>
+        <div class="dash-rule" aria-hidden="true"></div>
+      </div>
+
+      <div class="grid">
+
+        <article class="card" style="--accent:#ff5a5f;--label:#ff5a5f;--glitch1:#4cc9f0;--glitch2:#ff2e88;--cta-text:#fff">
+          <div class="card-image">
+            <img src="img/mirrorsky/deep-nidra.png" alt="Deep Nidra project artwork">
+          </div>
+          <div class="card-body">
+            <div class="card-label">DEEP NIDRA</div>
+            <div class="card-desc">Invite-only meditation library.</div>
+            <a href="https://deepnidra.com" class="cta" target="_blank" rel="noopener noreferrer">OPEN <span>&rarr;</span></a>
+          </div>
+        </article>
+
+        <article class="card" style="--accent:#4cc9f0;--label:#00a3c4;--glitch1:#ff5a5f;--glitch2:#ffb703;--cta-text:#1a1a1a">
+          <div class="card-image">
+            <div class="card-thumb thumb-ising" role="img" aria-label="Checkerboard spin lattice preview"></div>
+          </div>
+          <div class="card-body">
+            <div class="card-label">ISING PLAYGROUND</div>
+            <div class="card-desc">2D Ising model: click spins, tune temperature near T<sub>c</sub> &asymp; 2.27, run Metropolis dynamics.</div>
+            <a href="ising.html" class="cta">OPEN <span>&rarr;</span></a>
+          </div>
+        </article>
+
+        <article class="card" style="--accent:#ffb703;--label:#c98600;--glitch1:#7c3aed;--glitch2:#34c759;--cta-text:#1a1a1a">
+          <div class="card-image img-contain">
+            <img src="img/mirrorsky/bandcamp-marquee.png" width="975" height="180" alt="Mirrorsky Productions header art">
+          </div>
+          <div class="card-body">
+            <div class="card-label">MIRRORSKY PRODUCTIONS</div>
+            <div class="card-desc">London, UK — music label</div>
+            <a href="https://mirrorsky.com" class="cta" target="_blank" rel="noopener noreferrer">VISIT <span>&rarr;</span></a>
+          </div>
+        </article>
+
+        <article class="card" style="--accent:#7c3aed;--label:#7c3aed;--glitch1:#ff2e88;--glitch2:#4cc9f0;--cta-text:#fff">
+          <div class="card-image">
+            <img src="img/mirrorsky/estate-thumb.png" alt="Walkable top-down map preview of the estate">
+          </div>
+          <div class="card-body">
+            <div class="card-label">AVZ</div>
+            <div class="card-desc">A walkable top-down map of the house, river, and grounds — arrow keys to explore.</div>
+            <div style="display:flex;align-items:baseline;gap:12px">
+              <a href="estate.html" class="cta">OPEN <span>&rarr;</span></a>
+              <a href="estate-credits.html" style="font-size:11px;color:#8a8578;text-decoration:underline">credits</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="card" style="--accent:#34c759;--label:#279e46;--glitch1:#ffb703;--glitch2:#4cc9f0;--cta-text:#fff">
+          <div class="card-image">
+            <img src="img/megafaun/fossa.jpg" alt="A fossa in the wild, Madagascar">
+          </div>
+          <div class="card-body">
+            <div class="card-label">MEGAFAUN.ORG</div>
+            <div class="card-desc">Fossa conservation charity — protecting Madagascar's wildlife through research and habitat protection.</div>
+            <a href="https://megafaun.org" class="cta" target="_blank" rel="noopener noreferrer">VISIT <span>&rarr;</span></a>
+          </div>
+        </article>
+
+        <article class="card" style="--accent:#ff2e88;--label:#ff2e88;--glitch1:#4cc9f0;--glitch2:#ffb703;--cta-text:#fff">
+          <div class="card-image">
+            <img src="img/mirrorsky/placeholder-1.png" alt="">
+          </div>
+          <div class="card-body">
+            <div class="card-label">COMING SOON</div>
+          </div>
+        </article>
+
+        <article class="card" style="--accent:#ff5a5f;--label:#ff5a5f;--glitch1:#4cc9f0;--glitch2:#ff2e88;--cta-text:#fff">
+          <div class="card-image">
+            <img src="img/mirrorsky/placeholder-2.png" alt="">
+          </div>
+          <div class="card-body">
+            <div class="card-label">COMING SOON</div>
+          </div>
+        </article>
+
+        <article class="card" style="--accent:#4cc9f0;--label:#00a3c4;--glitch1:#ff5a5f;--glitch2:#ffb703;--cta-text:#1a1a1a">
+          <div class="card-image">
+            <img src="img/mirrorsky/placeholder-3.png" alt="">
+          </div>
+          <div class="card-body">
+            <div class="card-label">COMING SOON</div>
+          </div>
+        </article>
+
+        <article class="card" style="--accent:#ffb703;--label:#c98600;--glitch1:#7c3aed;--glitch2:#34c759;--cta-text:#1a1a1a">
+          <div class="card-image">
+            <img src="img/mirrorsky/placeholder-4.png" alt="">
+          </div>
+          <div class="card-body">
+            <div class="card-label">COMING SOON</div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+  </main>
+
+  <footer id="contact" aria-labelledby="contact-heading">
+    <span id="contact-heading" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Contact</span>
+    <div class="copyright">&copy; 2026 Lyons.io. All rights reserved.</div>
+    <div class="socials">
+      <a href="https://github.com/b-lyons" class="social-icon" style="--hover:#ffd23f" target="_blank" rel="noopener noreferrer" aria-label="GitHub">G</a>
+      <a href="https://mirrorsky.bandcamp.com" class="social-icon" style="--hover:#4cc9f0" target="_blank" rel="noopener noreferrer" aria-label="Bandcamp">B</a>
+      <a href="mailto:lyonsio026@mirrorsky.com" class="social-icon" style="--hover:#ff5a5f" aria-label="Email">M</a>
+    </div>
+  </footer>
 </div>
-<!-- Main container END -->
-    
 
 </body>
 </html>

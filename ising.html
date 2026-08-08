@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ising Playground — Lyons.io</title>
+<meta name="description" content="Interactive 2D Ising model: click spins, tune temperature, run Metropolis dynamics.">
+<link rel="shortcut icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/ising.css">
+</head>
+<body>
+
+<div class="bg-wrap">
+
+  <div class="dot" style="top:64px;left:6%;width:14px;height:14px;background:#4cc9f0;animation:bob 3.2s ease-in-out infinite"></div>
+  <div class="dot" style="top:120px;right:9%;width:10px;height:10px;background:#ff5a5f;animation:bob2 2.6s ease-in-out infinite"></div>
+  <div class="dot" style="bottom:120px;right:5%;width:16px;height:16px;background:#7c3aed;animation:bob2 3.6s ease-in-out infinite .2s"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <nav aria-label="Primary">
+    <a href="index.html" class="brand">
+      <div class="brand-mark" aria-hidden="true"></div>
+      LYONS.IO
+    </a>
+    <div class="navlinks">
+      <a href="index.html#work" class="navlink" style="--nav-accent:#4cc9f0">&lt; BACK TO PROJECTS</a>
+    </div>
+  </nav>
+
+  <main id="main" class="page-main" tabindex="-1">
+    <div class="section-label-row">
+      <span class="section-label">ISING PLAYGROUND</span>
+      <div class="dash-rule" aria-hidden="true"></div>
+    </div>
+
+    <p class="about">
+      Square lattice of spins <code>&plusmn;1</code> (shown light / dark). Energy uses nearest neighbors with
+      <strong>periodic boundaries</strong>; units <code>J = k<sub>B</sub> = 1</code>.
+      <strong>Metropolis</strong> flips: accept with probability
+      <code>min(1, e<sup>&minus;&Delta;E/T</sup>)</code>.
+      The 2D critical temperature is <code>T<sub>c</sub> &asymp; 2.269</code>: below it you tend to see large aligned
+      domains; above it, disorder; near <code>T<sub>c</sub></code>, slow, patchy fluctuations.
+    </p>
+
+    <section class="ising-panel" aria-label="Simulation controls">
+      <label class="ising-label" for="ising-temp">
+        TEMPERATURE T
+        <input type="range" id="ising-temp" name="temperature" min="0.5" max="5" step="0.01" value="2.27" aria-valuemin="0.5" aria-valuemax="5" aria-describedby="ising-temp-help">
+        <span class="ising-t-readout" id="ising-temp-readout" aria-hidden="true"></span>
+      </label>
+      <span id="ising-temp-help" class="sr-only">Affects Metropolis acceptance. Try values near 2.27 for critical-like behavior.</span>
+
+      <div class="ising-btnrow">
+        <button type="button" id="ising-toggle" class="cta" style="--accent:#4cc9f0;--cta-text:#1a1a1a" aria-pressed="false">RUN</button>
+        <button type="button" id="ising-reset" class="cta" style="--accent:#fff;--cta-text:#1a1a1a">RESET</button>
+      </div>
+
+      <div class="ising-stats" role="status" aria-live="polite">
+        Magnetization <code>M</code> = <span id="ising-m"></span>
+        &nbsp;&middot;&nbsp; |<code>M</code>| = <span id="ising-absm"></span>
+      </div>
+    </section>
+
+    <section aria-label="Lattice">
+      <p class="ising-hint sr-only">Click a square to flip that spin.</p>
+      <p class="ising-hint" aria-hidden="true">Click cells to flip spins manually.</p>
+      <div class="ising-canvas-wrap">
+        <canvas id="ising-canvas" aria-label="Ising model lattice. Click a cell to flip its spin." role="img"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="copyright">&copy; 2026 Lyons.io. All rights reserved.</div>
+  </footer>
+</div>
+
+<script src="js/ising.js"></script>
+</body>
+</html>
