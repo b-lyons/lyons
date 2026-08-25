@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AVZ Map Builder</title>
+<style>
+  :root {
+    --bg: #1b1e24;
+    --panel: #262a33;
+    --border: #3a3f4b;
+    --text: #e8e8e8;
+    --muted: #9aa0ac;
+    --accent: #6fb3ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+  #app { display: flex; height: 100vh; }
+  #sidebar {
+    width: 300px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 12px;
+  }
+  #sidebar h1 { font-size: 15px; margin: 0 0 4px; }
+  #sidebar h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 16px 0 6px; }
+  #sidebar .hint { color: var(--muted); font-size: 11.5px; margin: 2px 0 10px; }
+  #canvasWrap { flex: 1; position: relative; overflow: hidden; background: #101216; }
+  canvas { position: absolute; top: 0; left: 0; image-rendering: pixelated; cursor: crosshair; }
+  button {
+    background: #333844; color: var(--text); border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 9px; font-size: 12px; cursor: pointer; margin: 2px 2px 2px 0;
+  }
+  button:hover { background: #3d4451; }
+  button.active { background: var(--accent); color: #0b1220; border-color: var(--accent); }
+  button.wide { width: 100%; margin-top: 4px; }
+  input[type=range] { width: 100%; }
+  input[type=number], input[type=text] {
+    background: #1c1f26; color: var(--text); border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 5px; width: 64px; font-size: 12px;
+  }
+  label.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 4px 0; }
+  .palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .swatch {
+    border: 2px solid transparent; border-radius: 4px; cursor: pointer; background: #10121a;
+    display: flex; flex-direction: column; align-items: center; padding: 3px 2px;
+  }
+  .swatch canvas { image-rendering: pixelated; width: 32px; height: 32px; }
+  .swatch span { font-size: 9px; color: var(--muted); margin-top: 2px; text-align: center; line-height: 1.1; }
+  .swatch.selected { border-color: var(--accent); background: #1a2433; }
+  .layerbtns { display: flex; gap: 4px; }
+  .layerbtns button { flex: 1; }
+  #statusbar {
+    position: absolute; bottom: 0; left: 0; right: 0; background: rgba(20,22,28,.92);
+    border-top: 1px solid var(--border); padding: 5px 10px; font-size: 11.5px; color: var(--muted);
+    display: flex; gap: 16px; z-index: 5;
+  }
+  #zoomCtrls { position: absolute; top: 10px; right: 10px; z-index: 5; background: rgba(20,22,28,.85); border-radius: 6px; padding: 4px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .small { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <h1>Estate Map Builder</h1>
+    <div class="hint">Left-click/drag paint · right-click/drag erase · scroll to zoom · space+drag to pan</div>
+
+    <h2>Reference image</h2>
+    <div class="layerbtns">
+      <button id="refNone">None</button>
+      <button id="refCad" class="active">Cadastre</button>
+      <button id="refAerial">Aerial</button>
+    </div>
+    <label class="row">Opacity <input type="range" id="refOpacity" min="0" max="100" value="70"></label>
+    <div class="hint">Hold <b>Option</b> and drag to move the reference images; <b>Option</b>+scroll to scale; <b>Option+Shift</b>+scroll to rotate. All reference layers move together, so they stay aligned with each other.</div>
+    <label class="row">Offset X <input type="number" id="refX" step="1"></label>
+    <label class="row">Offset Y <input type="number" id="refY" step="1"></label>
+    <label class="row">Scale <input type="number" id="refScale" step="0.01"></label>
+    <label class="row">Rotation (°) <input type="number" id="refRotation" step="0.5"></label>
+    <div class="layerbtns">
+      <button id="rotCCW5">−5°</button>
+      <button id="rotCCW1">−1°</button>
+      <button id="rotCW1">+1°</button>
+      <button id="rotCW5">+5°</button>
+    </div>
+    <button id="resetCad" class="small">Reset cadastre alignment</button>
+    <button id="resetAerial" class="small">Reset aerial alignment</button>
+
+    <h2>Layer</h2>
+    <div class="layerbtns">
+      <button id="layerGround" class="active">Ground</button>
+      <button id="layerDeco">Decoration</button>
+    </div>
+    <div class="hint" id="layerHint">Ground: opaque terrain tiles (grass, water, paths...)</div>
+
+    <h2>Palette</h2>
+    <div class="palette" id="palette"></div>
+
+    <h2>Grid</h2>
+    <label class="row">Width <input type="number" id="gridW" value="132"></label>
+    <label class="row">Height <input type="number" id="gridH" value="132"></label>
+    <button id="resizeGrid" class="wide">Resize grid (keeps data)</button>
+
+    <hr>
+    <button id="loadCurrent" class="wide">Load current game map</button>
+    <button id="exportBtn" class="wide">Export / Download map JSON</button>
+    <button id="undoBtn" class="wide">Undo (Ctrl+Z)</button>
+    <div class="hint">Export downloads <code>avz-map.json</code> — move it into <code>assets/avz/</code> to use it in the game.</div>
+  </div>
+  <div id="canvasWrap">
+    <canvas id="cv"></canvas>
+    <div id="zoomCtrls">
+      <button id="zoomOut">−</button>
+      <button id="zoomIn">+</button>
+      <button id="zoomReset">Reset view</button>
+    </div>
+    <div id="statusbar">
+      <span id="cellInfo">—</span>
+      <span id="tileInfo">—</span>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ---- Tileset / palette definition (must match tools/avz-map/build_map.py) ----
+const SHEET_COLS = 8;
+const T = 32; // source tile px in tileset.png
+function tid(col, row) { return row * SHEET_COLS + col; }
+
+const PALETTE = [
+  // Ground-safe (opaque) tiles
+  { id: tid(0,0), name: 'Grass',      col:0, row:0, group:'ground' },
+  { id: tid(1,0), name: 'Water',      col:1, row:0, group:'ground' },
+  { id: tid(2,0), name: 'Pool',       col:2, row:0, group:'ground' },
+  { id: tid(3,0), name: 'Path',       col:3, row:0, group:'ground' },
+  { id: tid(4,0), name: 'Tennis',     col:4, row:0, group:'ground' },
+  { id: tid(5,0), name: 'Roof fill',  col:5, row:0, group:'ground' },
+  { id: tid(6,0), name: 'Grass alt',  col:6, row:0, group:'ground' },
+  { id: tid(7,0), name: 'Bush A',     col:7, row:0, group:'ground' },
+  // Decoration (partially transparent -- paint on the Decoration layer)
+  { id: tid(0,1), name: 'Bush B',     col:0, row:1, group:'deco' },
+  { id: tid(1,1), name: 'Tree',       col:1, row:1, group:'deco' },
+  { id: tid(2,1), name: 'Tree 2',     col:2, row:1, group:'deco' },
+  { id: tid(3,1), name: 'Flower',     col:3, row:1, group:'deco' },
+];
+// Building sprite: 3 cols x 4 rows, individually selectable...
+const BUILDING_TILES = [];
+for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) BUILDING_TILES.push(tid(c, 2+r));
+PALETTE.push({ id: BUILDING_TILES[0], name: 'Roof NW', col:0, row:2, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[1], name: 'Roof N',  col:1, row:2, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[2], name: 'Roof NE', col:2, row:2, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[3], name: 'Roof SW', col:0, row:3, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[4], name: 'Roof S',  col:1, row:3, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[5], name: 'Roof SE', col:2, row:3, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[6], name: 'Wall W',  col:0, row:4, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[7], name: 'Wall',    col:1, row:4, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[8], name: 'Wall E',  col:2, row:4, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[9], name: 'Base W',  col:0, row:5, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[10],name: 'Base',    col:1, row:5, group:'deco' });
+PALETTE.push({ id: BUILDING_TILES[11],name: 'Base E',  col:2, row:5, group:'deco' });
+// ...plus a one-click 3x4 stamp
+const HOUSE_STAMP = 'HOUSE_STAMP';
+
+const GROUND_COLLIDE = new Set([tid(1,0), tid(2,0), tid(5,0)]); // water, pool, roof-fill
+const DECO_COLLIDE = new Set([...BUILDING_TILES, tid(1,1), tid(2,1)]); // building stamp + Tree, Tree 2
+
+// ---- State ----
+let gridW = 132, gridH = 132;
+let ground = makeGrid(gridW, gridH, null);
+let deco = makeGrid(gridW, gridH, null);
+let history = [];
+
+function makeGrid(w, h, fill) {
+  const g = [];
+  for (let r = 0; r < h; r++) g.push(new Array(w).fill(fill));
+  return g;
+}
+
+let activeLayer = 'ground';
+let activeTile = tid(0,0); // grass by default
+
+let view = { zoom: 15.5, panX: 0, panY: 0 }; // zoom = on-screen px per grid cell
+
+// cadastre_grid.json (and therefore this whole 132x132 grid) is oriented to match
+// the estate's real ~49 degree rotation relative to true north, not true north
+// itself -- see the ROTATION_NOTE in cadastre_grid.json's meta and build_map.py's
+// world_to_grid() for how that's derived. These defaults are exactly the alignment
+// that produces that orientation, so a fresh page load already lines the cadastre
+// image up with the grid; no by-eye rotation needed before tiling.
+const CAD_DEFAULT = { offsetX: 30, offsetY: -419, scale: 1, rotation: -49.0 };
+// Same idea for the aerial photo. Refit from three precisely-identified landmarks
+// (the pool's exact corners plus the main house and pool house roof outlines, all
+// read off a zoomed, gridded crop of aerial.png) against their real grid positions
+// from build_map.py -- residuals came out under 0.2 grid cells on all three, a much
+// tighter fit than the first pass (which used blurrier, lower-zoom landmark guesses).
+const AERIAL_DEFAULT = { offsetX: 401.34, offsetY: 318.93, scale: 1.2139, rotation: -20.40 };
+
+// Reference alignment is fiddly to redo, so persist it across reloads/switches --
+// losing this was the actual cause of refs "going out of alignment" (there was no
+// data-loss bug, the state just never survived a page refresh before).
+const REF_STORAGE_KEY = 'estate-map-builder:refState';
+function loadRefState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(REF_STORAGE_KEY));
+    if (saved && saved.cadastre && saved.aerial) return saved;
+  } catch (e) { /* ignore malformed/missing storage */ }
+  return null;
+}
+function saveRefState() {
+  try { localStorage.setItem(REF_STORAGE_KEY, JSON.stringify(refState)); } catch (e) { /* ignore quota errors */ }
+}
+const savedRefState = loadRefState();
+let refState = savedRefState || {
+  cadastre: Object.assign({}, CAD_DEFAULT),
+  aerial: Object.assign({}, AERIAL_DEFAULT),
+};
+let activeRef = 'cadastre'; // 'none' | 'cadastre' | 'aerial'
+let refOpacity = 0.7;
+
+const images = {};
+function loadImage(key, src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => { images[key] = img; resolve(img); };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+// ---- Canvas setup ----
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvasWrap');
+let tilesetImg = null;
+
+function resizeCanvas() {
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function draw() {
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#10121a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.save();
+  ctx.translate(view.panX, view.panY);
+
+  // reference image (rotated in place around its own center, then
+  // positioned/scaled the same way offsetX/offsetY/scale always worked)
+  if (activeRef !== 'none' && images[activeRef]) {
+    const rs = refState[activeRef];
+    const img = images[activeRef];
+    const factor = view.zoom / 15.5;
+    ctx.globalAlpha = refOpacity;
+    ctx.save();
+    const cx = (rs.offsetX + img.width * rs.scale / 2) * factor;
+    const cy = (rs.offsetY + img.height * rs.scale / 2) * factor;
+    ctx.translate(cx, cy);
+    ctx.rotate((rs.rotation || 0) * Math.PI / 180);
+    ctx.scale(factor * rs.scale, factor * rs.scale);
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  // painted tiles
+  if (tilesetImg) {
+    drawLayer(ground, 0.95);
+    drawLayer(deco, 1.0);
+  }
+
+  // grid lines
+  if (view.zoom >= 5) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let c = 0; c <= gridW; c++) {
+      const x = Math.round(c * view.zoom) + 0.5;
+      ctx.moveTo(x, 0); ctx.lineTo(x, gridH * view.zoom);
+    }
+    for (let r = 0; r <= gridH; r++) {
+      const y = Math.round(r * view.zoom) + 0.5;
+      ctx.moveTo(0, y); ctx.lineTo(gridW * view.zoom, y);
+    }
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(111,179,255,0.9)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, gridW * view.zoom, gridH * view.zoom);
+
+  ctx.restore();
+}
+
+function drawLayer(layer, alpha) {
+  ctx.globalAlpha = alpha;
+  for (let r = 0; r < gridH; r++) {
+    const row = layer[r];
+    for (let c = 0; c < gridW; c++) {
+      const id = row[c];
+      if (id === null) continue;
+      const sx = (id % SHEET_COLS) * T, sy = Math.floor(id / SHEET_COLS) * T;
+      ctx.drawImage(tilesetImg, sx, sy, T, T, c * view.zoom, r * view.zoom, view.zoom, view.zoom);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---- Palette UI ----
+function buildPalette() {
+  const el = document.getElementById('palette');
+  el.innerHTML = '';
+  const addSwatch = (label, drawFn, onClick, tileIdForSelection) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'swatch';
+    wrap.dataset.tileId = tileIdForSelection;
+    const cv = document.createElement('canvas');
+    cv.width = 32; cv.height = 32;
+    const c2 = cv.getContext('2d');
+    c2.imageSmoothingEnabled = false;
+    drawFn(c2);
+    const span = document.createElement('span');
+    span.textContent = label;
+    wrap.appendChild(cv); wrap.appendChild(span);
+    wrap.addEventListener('click', onClick);
+    el.appendChild(wrap);
+  };
+
+  PALETTE.forEach(p => {
+    addSwatch(p.name, (c2) => {
+      if (tilesetImg) c2.drawImage(tilesetImg, p.col*T, p.row*T, T, T, 0, 0, 32, 32);
+    }, () => selectTile(p.id), p.id);
+  });
+
+  // house stamp swatch
+  addSwatch('House (3x4)', (c2) => {
+    if (!tilesetImg) return;
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+      c2.drawImage(tilesetImg, c*T, (2+r)*T, T, T, c*10.6, r*8, 10.7, 8);
+    }
+  }, () => selectTile(HOUSE_STAMP), HOUSE_STAMP);
+
+  refreshPaletteSelection();
+}
+function refreshPaletteSelection() {
+  document.querySelectorAll('.swatch').forEach(w => {
+    w.classList.toggle('selected', String(w.dataset.tileId) === String(activeTile));
+  });
+}
+function selectTile(id) {
+  activeTile = id;
+  refreshPaletteSelection();
+}
+
+// ---- Painting ----
+function pushHistory() {
+  history.push({ ground: ground.map(r => r.slice()), deco: deco.map(r => r.slice()) });
+  if (history.length > 60) history.shift();
+}
+function undo() {
+  const h = history.pop();
+  if (!h) return;
+  ground = h.ground; deco = h.deco;
+  draw();
+}
+
+function screenToCell(px, py) {
+  const x = (px - view.panX) / view.zoom;
+  const y = (py - view.panY) / view.zoom;
+  return { c: Math.floor(x), r: Math.floor(y) };
+}
+
+function paintCell(r, c, erase) {
+  if (r < 0 || c < 0 || r >= gridH || c >= gridW) return;
+  const layer = activeLayer === 'ground' ? ground : deco;
+  if (erase) {
+    layer[r][c] = null;
+    return;
+  }
+  if (activeTile === HOUSE_STAMP) {
+    for (let ry = 0; ry < 4; ry++) for (let rx = 0; rx < 3; rx++) {
+      const rr = r + ry, cc = c + rx;
+      if (rr >= 0 && cc >= 0 && rr < gridH && cc < gridW) deco[rr][cc] = BUILDING_TILES[ry*3+rx];
+    }
+    return;
+  }
+  layer[r][c] = activeTile;
+}
+
+let painting = false, paintErase = false, dirtyStroke = false;
+let panning = false, panStart = null;
+let altDragging = false, altDragStart = null;
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+canvas.addEventListener('mousedown', (e) => {
+  if (e.altKey && activeRef !== 'none') {
+    altDragging = true;
+    // snapshot every reference layer's offset, not just the active one, so
+    // dragging moves them all together and keeps them aligned with each other
+    const refs = {};
+    for (const key of Object.keys(refState)) refs[key] = Object.assign({}, refState[key]);
+    altDragStart = { x: e.clientX, y: e.clientY, refs };
+    return;
+  }
+  if (e.button === 1 || spaceDown) {
+    panning = true;
+    panStart = { x: e.clientX - view.panX, y: e.clientY - view.panY };
+    return;
+  }
+  painting = true;
+  paintErase = (e.button === 2);
+  dirtyStroke = false;
+  const rect = canvas.getBoundingClientRect();
+  const { r, c } = screenToCell(e.clientX - rect.left, e.clientY - rect.top);
+  if (!dirtyStroke) { pushHistory(); dirtyStroke = true; }
+  paintCell(r, c, paintErase);
+  draw();
+  updateStatus(r, c);
+});
+
+window.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+
+  if (altDragging) {
+    const dx = e.clientX - altDragStart.x, dy = e.clientY - altDragStart.y;
+    const factor = view.zoom / 15.5;
+    for (const key of Object.keys(refState)) {
+      refState[key].offsetX = altDragStart.refs[key].offsetX + dx / factor;
+      refState[key].offsetY = altDragStart.refs[key].offsetY + dy / factor;
+    }
+    syncRefInputs();
+    draw();
+    return;
+  }
+  if (panning) {
+    view.panX = e.clientX - panStart.x;
+    view.panY = e.clientY - panStart.y;
+    draw();
+    return;
+  }
+  if (painting) {
+    const { r, c } = screenToCell(px, py);
+    paintCell(r, c, paintErase);
+    draw();
+    updateStatus(r, c);
+    return;
+  }
+  const { r, c } = screenToCell(px, py);
+  updateStatus(r, c);
+});
+
+window.addEventListener('mouseup', () => {
+  painting = false; panning = false;
+  if (altDragging) saveRefState();
+  altDragging = false;
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (e.altKey && e.shiftKey && activeRef !== 'none') {
+    const delta = (e.deltaY < 0 ? -1 : 1);
+    for (const key of Object.keys(refState)) {
+      refState[key].rotation = (refState[key].rotation || 0) + delta;
+    }
+    syncRefInputs();
+    draw();
+    saveRefState();
+    return;
+  }
+  if (e.altKey && activeRef !== 'none') {
+    const factor = (e.deltaY < 0 ? 1.05 : 0.95);
+    for (const key of Object.keys(refState)) {
+      refState[key].scale *= factor;
+    }
+    syncRefInputs();
+    draw();
+    saveRefState();
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  const worldXBefore = (px - view.panX) / view.zoom;
+  const worldYBefore = (py - view.panY) / view.zoom;
+  view.zoom *= (e.deltaY < 0 ? 1.1 : 0.9);
+  view.zoom = Math.max(2, Math.min(60, view.zoom));
+  // keep the world point under the cursor fixed
+  view.panX = px - worldXBefore * view.zoom;
+  view.panY = py - worldYBefore * view.zoom;
+  draw();
+}, { passive: false });
+
+let spaceDown = false;
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { spaceDown = true; canvas.style.cursor = 'grab'; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+});
+window.addEventListener('keyup', (e) => {
+  if (e.code === 'Space') { spaceDown = false; canvas.style.cursor = 'crosshair'; }
+});
+
+function updateStatus(r, c) {
+  document.getElementById('cellInfo').textContent = `cell (${c}, ${r})`;
+  const inBounds = r >= 0 && c >= 0 && r < gridH && c < gridW;
+  const g = inBounds ? ground[r][c] : null;
+  const d = inBounds ? deco[r][c] : null;
+  document.getElementById('tileInfo').textContent = `ground=${g === null ? '–' : g}  deco=${d === null ? '–' : d}`;
+}
+
+// ---- Sidebar controls ----
+function syncRefInputs() {
+  const rs = refState[activeRef] || CAD_DEFAULT;
+  document.getElementById('refX').value = Math.round(rs.offsetX);
+  document.getElementById('refY').value = Math.round(rs.offsetY);
+  document.getElementById('refScale').value = rs.scale.toFixed(3);
+  document.getElementById('refRotation').value = (rs.rotation || 0).toFixed(1);
+}
+function nudgeRotation(deg) {
+  if (activeRef === 'none') return;
+  for (const key of Object.keys(refState)) {
+    refState[key].rotation = (refState[key].rotation || 0) + deg;
+  }
+  syncRefInputs();
+  draw();
+  saveRefState();
+}
+document.getElementById('rotCCW5').addEventListener('click', () => nudgeRotation(-5));
+document.getElementById('rotCCW1').addEventListener('click', () => nudgeRotation(-1));
+document.getElementById('rotCW1').addEventListener('click', () => nudgeRotation(1));
+document.getElementById('rotCW5').addEventListener('click', () => nudgeRotation(5));
+
+document.getElementById('refNone').addEventListener('click', () => setActiveRef('none'));
+document.getElementById('refCad').addEventListener('click', () => setActiveRef('cadastre'));
+document.getElementById('refAerial').addEventListener('click', () => setActiveRef('aerial'));
+function setActiveRef(key) {
+  activeRef = key;
+  ['refNone','refCad','refAerial'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(key === 'none' ? 'refNone' : key === 'cadastre' ? 'refCad' : 'refAerial').classList.add('active');
+  syncRefInputs();
+  draw();
+}
+document.getElementById('refOpacity').addEventListener('input', (e) => {
+  refOpacity = e.target.value / 100;
+  draw();
+});
+['refX','refY','refScale','refRotation'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if (activeRef === 'none') return;
+    const rs = refState[activeRef];
+    // apply as a delta from the active ref's previous value to every layer,
+    // rather than overwriting each layer with the same absolute number --
+    // the layers naturally have different absolute offset/scale/rotation
+    // (different source images), so only the *change* should be shared.
+    const newX = parseFloat(document.getElementById('refX').value) || 0;
+    const newY = parseFloat(document.getElementById('refY').value) || 0;
+    const newScale = parseFloat(document.getElementById('refScale').value) || 1;
+    const newRotation = parseFloat(document.getElementById('refRotation').value) || 0;
+    const dX = newX - rs.offsetX;
+    const dY = newY - rs.offsetY;
+    const scaleFactor = rs.scale ? newScale / rs.scale : 1;
+    const dRotation = newRotation - (rs.rotation || 0);
+    for (const key of Object.keys(refState)) {
+      refState[key].offsetX += dX;
+      refState[key].offsetY += dY;
+      refState[key].scale *= scaleFactor;
+      refState[key].rotation = (refState[key].rotation || 0) + dRotation;
+    }
+    draw();
+    saveRefState();
+  });
+});
+document.getElementById('resetCad').addEventListener('click', () => {
+  refState.cadastre = Object.assign({}, CAD_DEFAULT);
+  if (activeRef === 'cadastre') syncRefInputs();
+  draw();
+  saveRefState();
+});
+document.getElementById('resetAerial').addEventListener('click', () => {
+  refState.aerial = Object.assign({}, AERIAL_DEFAULT);
+  if (activeRef === 'aerial') syncRefInputs();
+  draw();
+  saveRefState();
+});
+
+document.getElementById('layerGround').addEventListener('click', () => setLayer('ground'));
+document.getElementById('layerDeco').addEventListener('click', () => setLayer('deco'));
+function setLayer(l) {
+  activeLayer = l;
+  document.getElementById('layerGround').classList.toggle('active', l === 'ground');
+  document.getElementById('layerDeco').classList.toggle('active', l === 'deco');
+  document.getElementById('layerHint').textContent = l === 'ground'
+    ? 'Ground: opaque terrain tiles (grass, water, paths...)'
+    : 'Decoration: transparent-cornered tiles (trees, bushes, roof sprite) — drawn on top of Ground.';
+}
+
+document.getElementById('zoomIn').addEventListener('click', () => { view.zoom = Math.min(60, view.zoom * 1.2); draw(); });
+document.getElementById('zoomOut').addEventListener('click', () => { view.zoom = Math.max(2, view.zoom / 1.2); draw(); });
+document.getElementById('zoomReset').addEventListener('click', () => {
+  view.zoom = 15.5; view.panX = 40; view.panY = 40; draw();
+});
+document.getElementById('undoBtn').addEventListener('click', undo);
+
+document.getElementById('resizeGrid').addEventListener('click', () => {
+  const w = parseInt(document.getElementById('gridW').value, 10);
+  const h = parseInt(document.getElementById('gridH').value, 10);
+  if (!w || !h) return;
+  pushHistory();
+  const newGround = makeGrid(w, h, null), newDeco = makeGrid(w, h, null);
+  for (let r = 0; r < Math.min(h, gridH); r++) {
+    for (let c = 0; c < Math.min(w, gridW); c++) {
+      newGround[r][c] = ground[r][c];
+      newDeco[r][c] = deco[r][c];
+    }
+  }
+  gridW = w; gridH = h; ground = newGround; deco = newDeco;
+  draw();
+});
+
+document.getElementById('loadCurrent').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/assets/avz/avz-map.json');
+    const map = await res.json();
+    pushHistory();
+    gridW = map.width; gridH = map.height;
+    document.getElementById('gridW').value = gridW;
+    document.getElementById('gridH').value = gridH;
+    const groundLayer = map.layers.find(l => l.name === 'Ground');
+    const decoLayer = map.layers.find(l => l.name === 'Building');
+    ground = makeGrid(gridW, gridH, null);
+    deco = makeGrid(gridW, gridH, null);
+    for (let r = 0; r < gridH; r++) {
+      for (let c = 0; c < gridW; c++) {
+        const gi = groundLayer.data[r*gridW+c];
+        const di = decoLayer ? decoLayer.data[r*gridW+c] : 0;
+        ground[r][c] = gi === 0 ? null : gi - 1;
+        deco[r][c] = di === 0 ? null : di - 1;
+      }
+    }
+    draw();
+    alert('Loaded current game map (' + gridW + 'x' + gridH + ').');
+  } catch (err) {
+    alert('Could not load current map: ' + err.message);
+  }
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const flatten = (layer) => {
+    const data = [];
+    for (let r = 0; r < gridH; r++) for (let c = 0; c < gridW; c++) {
+      const id = layer[r][c];
+      data.push(id === null ? 0 : id + 1);
+    }
+    return data;
+  };
+  const groundData = flatten(ground);
+  const decoData = flatten(deco);
+
+  const usedGround = new Set(groundData.filter(x => x > 0).map(x => x - 1));
+  const usedDeco = new Set(decoData.filter(x => x > 0).map(x => x - 1));
+  const tiles = [];
+  usedGround.forEach(id => { if (GROUND_COLLIDE.has(id)) tiles.push({ id, properties: [{ name:'collides', type:'bool', value:true }] }); });
+  usedDeco.forEach(id => { if (DECO_COLLIDE.has(id) && !GROUND_COLLIDE.has(id)) tiles.push({ id, properties: [{ name:'collides', type:'bool', value:true }] }); });
+
+  // find a Spawn Point if we loaded one, else default near the middle-south
+  let spawn = window.__loadedSpawn || { x: Math.floor(gridW/2)*32+16, y: Math.floor(gridH*0.9)*32+16 };
+
+  const tilemap = {
+    compressionlevel: -1, width: gridW, height: gridH, tilewidth: 32, tileheight: 32,
+    infinite: false, orientation: 'orthogonal', renderorder: 'right-down',
+    type: 'map', tiledversion: '1.10.2', version: '1.10', nextlayerid: 4, nextobjectid: 2,
+    // Not part of the Tiled schema -- ignored by the game, but records exactly how the
+    // reference images were positioned at export time. Without this, tiles painted
+    // against a reference that was dragged/scaled/rotated away from its calibrated
+    // default are impossible to map back to real-world cadastral coordinates later.
+    properties: [
+      { name: 'refStateAtExport', type: 'string', value: JSON.stringify(refState) },
+    ],
+    layers: [
+      { id:1, name:'Ground', type:'tilelayer', width:gridW, height:gridH, x:0, y:0, opacity:1, visible:true, data: groundData },
+      { id:3, name:'Building', type:'tilelayer', width:gridW, height:gridH, x:0, y:0, opacity:1, visible:true, data: decoData },
+      { id:2, name:'Objects', type:'objectgroup', opacity:1, visible:true, x:0, y:0, objects: [
+        { id:1, name:'Spawn Point', type:'', x: spawn.x, y: spawn.y, width:0, height:0, rotation:0, visible:true, point:true, properties:[] }
+      ]},
+    ],
+    tilesets: [
+      { firstgid:1, name:'estate_tileset', image:'tileset.png', imagewidth:256, imageheight:192,
+        tilewidth:32, tileheight:32, columns:8, tilecount:48, margin:0, spacing:0, tiles }
+    ],
+  };
+  const blob = new Blob([JSON.stringify(tilemap)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'avz-map.json';
+  a.click();
+});
+
+// ---- Init ----
+async function init() {
+  resizeCanvas();
+  view.panX = 40; view.panY = 40;
+  buildPalette();
+  syncRefInputs();
+  await Promise.all([
+    loadImage('cadastre', 'reference/cadastre.png'),
+    loadImage('aerial', 'reference/aerial.png'),
+    loadImage('tileset', '/assets/avz/tileset.png').then(img => { tilesetImg = img; }),
+  ]);
+  buildPalette();
+  draw();
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+.DS_Store
+
+# Cadastral source data for the AVZ map generator — kept local, not published.
+# build_map.py reads cadastre_grid.json from disk; the reference images are
+# visual aids only and are never read by code. See tools/avz-map/README.md.
+tools/avz-map/cadastre_grid.json
+tools/avz-map/cadastre_grid_original.json
+tools/avz-map/reference/
+
+# Full third-party source sheet — only the composited subset in assets/avz/ ships.
+tools/avz-map/source/
+osm_cache.json
+
+# Python bytecode
+__pycache__/
+*.pyc

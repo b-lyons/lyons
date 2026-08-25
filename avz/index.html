@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>AVZ — Lyons.io</title>
+  <meta name="description" content="AVZ — a walkable top-down map of the house, river and grounds, generated from real cadastral geometry. Arrow keys or WASD to explore.">
+  <link rel="canonical" href="https://lyons.io/avz/">
+  <meta name="theme-color" content="#0d1b2a">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lyons.io">
+  <meta property="og:title" content="AVZ — Lyons.io">
+  <meta property="og:description" content="A walkable top-down map of the house, river and grounds, generated from real cadastral geometry.">
+  <meta property="og:url" content="https://lyons.io/avz/">
+  <meta property="og:image" content="https://lyons.io/img/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="shortcut icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/avz.css">
+</head>
+<body>
+<div class="overlay">
+  <a class="back" href="/#work">&lt; PROJECTS</a>
+  <span class="controls-hint">Arrow keys or WASD to walk &middot; Esc to leave</span>
+</div>
+
+<div id="game-container" tabindex="0" role="application"
+     aria-label="AVZ: a walkable map of the estate. Use the arrow keys or W A S D to walk, Escape to return to the projects list."></div>
+
+<p class="sr-only">
+  AVZ is a top-down pixel map of the estate, drawn from the property's cadastral plan: the river
+  L'Huisne splits around a wooded island, the main house overlooks the water, and a driveway runs up
+  from the road past the pool and tennis court. It is a visual, keyboard-driven experience with no
+  text content or objective — nothing is lost by skipping it. The tileset and character sprite
+  credits are on the <a href="/avz/credits/">credits page</a>.
+</p>
+
+<!-- Touch d-pad: only rendered for coarse pointers, see css/avz.css -->
+<div class="dpad" id="dpad" aria-hidden="true">
+  <button type="button" class="dpad-btn dpad-up"    data-dir="up">&#9650;</button>
+  <button type="button" class="dpad-btn dpad-left"  data-dir="left">&#9664;</button>
+  <button type="button" class="dpad-btn dpad-right" data-dir="right">&#9654;</button>
+  <button type="button" class="dpad-btn dpad-down"  data-dir="down">&#9660;</button>
+</div>
+
+<div class="boot" id="boot" role="status" aria-live="polite">
+  <div class="boot-box">
+    <div class="boot-label" id="boot-label">LOADING AVZ</div>
+    <div class="boot-bar"><div class="boot-bar-fill" id="boot-bar-fill"></div></div>
+    <p class="boot-msg" id="boot-msg"></p>
+    <a class="boot-back" id="boot-back" href="/#work" hidden>&lt; BACK TO PROJECTS</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"
+        integrity="sha384-p8ty80jSFxlN0Y9ZlHjOYGzfXmOSD9FkIOdP+Yc3XeiDUfkSmkd7H2bQBvZrt7AC"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  // If the CDN is blocked, offline, or the SRI check fails, Phaser never lands.
+  // Say so instead of leaving a black rectangle on screen forever.
+  if (!window.Phaser) {
+    document.getElementById('boot-label').textContent = 'COULD NOT LOAD';
+    document.getElementById('boot-msg').textContent =
+      'The Phaser game engine could not be fetched from the CDN. Check your connection or any content blockers, then reload.';
+    document.getElementById('boot-bar-fill').style.display = 'none';
+    document.getElementById('boot-back').hidden = false;
+  }
+</script>
+<script type="module" src="/js/avz-main.js"></script>
+</body>
+</html>
