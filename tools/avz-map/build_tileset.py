@@ -27,7 +27,12 @@ OUT_COLS = 12  # output sheet width in tiles
 # (col, row) is the TOP-LEFT tile of a 3x3 block in the source sheet.
 # Slice order emitted: NW N NE W C E SW S SE
 NINE_SLICE = {
-    'grass':      (3, 166),   # grass centre with earth border
+    'grass':      (3, 166),   # fresh green, earth border
+    'lawn':       (0, 177),   # paler/yellower green -- second tone for mown patches
+    'sand':       (3, 183),   # sand whose outer ring blends into water: riverbank
+    # Border ring is hedge, centre is enclosed ground. We use only the ring, as
+    # hedgerows following real field boundaries.
+    'hedge':      (0, 263),
     'water':      (0, 173),   # deep blue-teal river
     'shallow':    (0, 166),   # pale blue, for river margins
     'path':       (3, 173),   # tan dirt/gravel path
@@ -42,6 +47,14 @@ STAMPS = {
     # cacti are deliberately left out. Coordinates verified tile-by-tile against
     # the source sheet — a stamp that is one column out grabs the neighbouring
     # sprite and renders as confetti, which is exactly what happened first pass.
+    # Big 3x4 specimens with cast shadows. The estate is parkland -- mature
+    # individual trees on mown grass -- not the uniform scrub the old scatter
+    # produced, and these are the single biggest visual lever in the sheet.
+    'specimen_oak':      (3, 50, 3, 4),
+    'specimen_willow':   (0, 50, 3, 4),
+    'specimen_oak2':     (3, 54, 3, 4),
+    'specimen_willow2':  (0, 54, 3, 4),
+
     'tree_leafy':   (0, 48, 2, 2),
     'tree_round':   (6, 46, 2, 2),
     'tree_broad':   (3, 48, 2, 2),
@@ -73,7 +86,22 @@ BUILDINGS = {
 
 # --- Single accent tiles -------------------------------------------------------
 SINGLES = {
-    'grass_alt':    (6, 172),
+    # NB: (6,172) reads as grass_alt but is rgb(150,214,131) against the grass
+    # centre's rgb(149,213,130) -- indistinguishable, so it was invisible as a
+    # texture break. The lawn nine-slice centre is the real second tone.
+    'shrub_round':  (6, 54),
+    'topiary':      (7, 54),
+    'sapling':      (6, 52),
+    'fern':         (7, 52),
+    'stump_cut':    (6, 55),
+    'bench':        (0, 254),
+    'bench_wide':   (1, 254),
+    'bed_blue':     (3, 254),
+    'bed_pink':     (6, 254),
+    'sunflowers':   (1, 255),
+    'lamp':         (6, 253),
+    'noticeboard':  (7, 253),
+    'planter':      (6, 252),
     'grass_tuft':   (7, 172),
     'water_rock':   (7, 174),
     'path_patch':   (7, 176),

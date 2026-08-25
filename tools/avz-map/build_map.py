@@ -234,11 +234,14 @@ if MAIN_HOUSE:
 else:
     house_edge_r, house_edge_c = int(house_cr), int(house_cc)
 
-def path_strip(cr, cc, half=1):
+def path_strip(cr, cc, half=0):
+    # half=1 stamped a 4x3 block per step, which at 2.5 m/tile is a ten-metre
+    # driveway -- it read as a desert cutting the map in half. A country drive
+    # is two tiles wide.
     fill(ground, int(cc) - half - 1, int(cc) + half + 1, int(cr) - half, int(cr) + half + 1, PATH)
 
 # forecourt immediately in front of the house
-path_strip(house_edge_r, house_edge_c, half=2)
+path_strip(house_edge_r, house_edge_c, half=1)
 
 # path segment: house forecourt -> gatehouse
 steps = max(1, int(_mag))
@@ -305,6 +308,7 @@ for r in range(GRID_H):
 
 # --- Garden loop path near the pool, matching the oval walking path visible
 # in the aerial photo, offset to the park side (away from the main house) ---
+LOOP_CELLS = set()
 if POOL_HOUSE:
     ph_cr, ph_cc = centroid(POOL_HOUSE)
     loop_cr = ph_cr + away_r * 20
@@ -314,9 +318,13 @@ if POOL_HOUSE:
         rad = math.radians(deg)
         lc = int(loop_cc + loop_rx * math.cos(rad))
         lr = int(loop_cr + loop_ry * math.sin(rad))
-        if 0 <= lr < GRID_H and 0 <= lc < GRID_W and ground[lr][lc] == GRASS:
-            ground[lr][lc] = PATH
-            building[lr][lc] = None
+        for orx in (-1, 0, 1):
+            for ory in (-1, 0, 1):
+                rr, cc2 = lr + ory, lc + orx
+                if 0 <= rr < GRID_H and 0 <= cc2 < GRID_W and ground[rr][cc2] == GRASS:
+                    ground[rr][cc2] = PATH
+                    building[rr][cc2] = None
+                    LOOP_CELLS.add((cc2, rr))
 
 # hedges bordering the tennis court
 for c in range(tcx - 7, tcx + 8):
@@ -349,7 +357,7 @@ SINGLES = IDX['singles']
 
 # Old-scheme ids -> new nine-slice terrain names
 WATERY = {WATER, POOL}
-PATHY = {PATH, TENNIS}
+PATHY = {PATH}
 
 cells = lambda pred: {(x, y) for y in range(GRID_H) for x in range(GRID_W) if pred(ground[y][x])}
 
@@ -358,6 +366,7 @@ water_mask = cells(lambda t: t in WATERY)
 path_mask = (cells(lambda t: t in PATHY)
              | OSM['road'] | OSM['track'] | OSM['footway']) - water_mask
 earth_mask = cells(lambda t: t == ROOF_FILL)
+court_mask = cells(lambda t: t == TENNIS)
 
 # --- The island, and the bridge to it ---------------------------------------
 # The estate's defining feature: L'Huisne splits and rejoins around a wooded
@@ -444,15 +453,38 @@ ground2.update(retile.autotile(water_mask | shore, GRID_W, GRID_H, NS['shallow']
 ground2.update(retile.autotile(water_mask, GRID_W, GRID_H, NS['water']))
 ground2.update(retile.autotile(path_mask, GRID_W, GRID_H, NS['path']))
 ground2.update(retile.autotile(earth_mask, GRID_W, GRID_H, NS['gravel']))
+ground2.update(retile.autotile(court_mask, GRID_W, GRID_H, NS['earth']))
 
 # Ground1 is an opaque grass bed under everything; Ground2 paints over it.
 grass_c = NS['grass'][retile.C]
-ground1 = {(x, y): grass_c for y in range(GRID_H) for x in range(GRID_W)}
-# a sprinkle of the alt-grass single, for texture rather than a flat field
+lawn_c = NS['lawn'][retile.C]
+
+# Two grass tones in soft patches rather than one flat green. Two coarse octaves
+# of the existing deterministic hash give irregular blobs; a single fine-grained
+# sprinkle just looks like noise, and a single octave looks like tiling.
+def _vnoise(x, y, scale, salt):
+    """Value noise on a lattice of `scale`, smoothstep-interpolated.
+
+    Thresholding h(x // scale, ...) directly gives hard rectangular blocks --
+    which is exactly what the first attempt at grass patches looked like.
+    Interpolating between lattice corners gives organic blobs instead.
+    """
+    gx, gy = x / scale, y / scale
+    x0, y0 = int(gx // 1), int(gy // 1)
+    fx, fy = gx - x0, gy - y0
+    sx, sy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
+    c = lambda ax, ay: h(ax, ay, salt) / 1000.0
+    top = c(x0, y0) * (1 - sx) + c(x0 + 1, y0) * sx
+    bot = c(x0, y0 + 1) * (1 - sx) + c(x0 + 1, y0 + 1) * sx
+    return top * (1 - sy) + bot * sy
+
+
+ground1 = {}
 for y in range(GRID_H):
     for x in range(GRID_W):
-        if (x, y) not in ground2 and h(x, y, 7717) % 23 == 0:
-            ground1[(x, y)] = SINGLES['grass_alt']
+        # two octaves: broad drifts of mowing plus a finer break-up
+        n = _vnoise(x, y, 9, 7717) * 0.65 + _vnoise(x, y, 3, 7919) * 0.35
+        ground1[(x, y)] = lawn_c if n < 0.44 else grass_c
 
 # --- Trees: the old scatter placed single 32px tiles; promote them to the 2x2
 # stamps that give the map its depth (upper half draws over the player).
@@ -490,15 +522,75 @@ for (sx, sy) in tree_spots:
         dy = (h(sx, sy, 7700 + k) % 5) - 2
         clustered.append((sx + dx, sy + dy))
 
+SPECIMENS = ['specimen_oak', 'specimen_willow', 'specimen_oak2', 'specimen_willow2']
+tree_trunks = set()
+
+# Seeds that survived thinning and stand clear of their neighbours become mature
+# specimens; the rest stay small and read as the scrubby mass behind them. That
+# size hierarchy is what makes parkland look like parkland instead of an orchard.
+# Crowding must be measured against the surviving spots, not the raw upstream
+# scatter -- that set is dense almost everywhere, so testing against it rejected
+# 863 of 879 candidates and no specimen ever got placed.
+placed_set = set(clustered)
 for spot in clustered:
-    kind = TREE_KINDS[h(spot[0], spot[1], 3313) % len(TREE_KINDS)]
-    lo, up = retile.place_stamps([spot], STAMPS[kind], GRID_W, GRID_H, occupied)
+    sx, sy = spot
+    crowded = sum(1 for dx in range(-2, 3) for dy in range(-2, 3)
+                  if (sx + dx, sy + dy) in placed_set) > 3
+    # Wide enough that the 3x4 footprint can still sit clear of the bank. At
+    # radius 3 the stamp always overlapped water and every willow was rejected.
+    near_water = any((sx + dx, sy + dy) in water_mask
+                     for dx in range(-7, 8) for dy in range(-7, 8))
+    if not crowded and h(sx, sy, 2207) % 100 < 55:
+        # willows by the water, oaks out on the grass
+        pool = SPECIMENS[1::2] if near_water else SPECIMENS[0::2]
+        kind = pool[h(sx, sy, 3313) % len(pool)]
+    else:
+        kind = TREE_KINDS[h(sx, sy, 3313) % len(TREE_KINDS)]
+    lo, up, tr = retile.place_stamps([spot], STAMPS[kind], GRID_W, GRID_H, occupied)
     deco.update(lo)
     above.update(up)
+    tree_trunks |= tr
 
-lo, up = retile.place_stamps(bush_spots, STAMPS['bush_small'], GRID_W, GRID_H, occupied)
+# Hedgerows on the real field boundaries. This corner of the Sarthe is bocage
+# country -- fields are defined by their hedges -- and OSM gives the actual
+# edges. Autotiling the meadow set with the hedge block and then discarding the
+# centre tile leaves exactly the border ring: hedge segments that turn corners
+# correctly, rather than a line of identical bushes.
+hedge_ids = NS['hedge']
+hedge_centre = hedge_ids[retile.C]
+# The bocage hedges sit out in the farmland, mostly beyond the crop. The estate
+# core is parkland, so the hedges that actually show are the clipped ones an
+# estate really has: enclosing the tennis court and the pool terrace.
+def _dilate(cells, r):
+    out = set()
+    for (cx, cy) in cells:
+        for dx in range(-r, r + 1):
+            for dy in range(-r, r + 1):
+                out.add((cx + dx, cy + dy))
+    return out
+
+# Only the court and the pool terrace get clipped hedges. Dilating every
+# roof-fill footprint ringed each shed and outbuilding in box hedge, which
+# looked like topiary run amok rather than an estate.
+pool_cells = cells(lambda t: t == POOL)
+enclosures = set()
+for region in (court_mask, pool_cells):
+    if region:
+        enclosures |= _dilate(region, 2) - _dilate(region, 1)
+
+meadow_cells = {c for c in (OSM['meadow'] | enclosures)
+                if c not in water_mask and c not in path_mask and c not in occupied
+                and 0 <= c[0] < GRID_W and 0 <= c[1] < GRID_H}
+hedges = {c: t for c, t in retile.autotile(meadow_cells, GRID_W, GRID_H, hedge_ids).items()
+          if t != hedge_centre}
+deco.update(hedges)
+occupied |= set(hedges)
+hedge_cells = set(hedges)
+
+lo, up, tr = retile.place_stamps(bush_spots, STAMPS['bush_small'], GRID_W, GRID_H, occupied)
 deco.update(lo)
 above.update(up)
+tree_trunks |= tr
 
 # --- Buildings: stretch a manor block across each real cadastral footprint.
 # The footprints are accurate (the main house is 12 tiles wide), so a fixed
@@ -532,6 +624,33 @@ for i, comp in enumerate(sorted(buildings, key=len, reverse=True)):
 above.update(building_above)
 deco.update(building_cells)
 
+# --- Garden furniture -------------------------------------------------------
+# Beds flanking the forecourt, benches and lamps set just off the carriage loop.
+# Placed against real features rather than scattered, so they read as deliberate.
+props = {}
+_loop = sorted(LOOP_CELLS)
+for i, cell in enumerate(_loop):
+    if cell in occupied or cell in path_mask:
+        continue
+    n = h(cell[0], cell[1], 9311) % 100
+    if n < 4:
+        props[cell] = SINGLES['bench']
+    elif n < 6:
+        props[cell] = SINGLES['lamp']
+
+if MAIN_HOUSE:
+    _hr0, _hr1, _hc0, _hc1 = bbox(MAIN_HOUSE)
+    for i, cx in enumerate(range(_hc0, _hc1 + 1, 3)):
+        for cy in (_hr1 + 2, _hr1 + 3):
+            cell = (cx, cy)
+            if (0 <= cx < GRID_W and 0 <= cy < GRID_H
+                    and cell not in occupied and cell not in path_mask
+                    and cell not in water_mask):
+                props[cell] = SINGLES['bed_blue' if i % 2 else 'bed_pink']
+
+deco.update(props)
+occupied |= set(props)
+
 # --- Bridge to the island ---
 # stretch_building puts row 0 on the Above layer, which is exactly right here:
 # the player walks along the deck and passes *behind* the far parapet.
@@ -560,7 +679,7 @@ if BRIDGE_DECK:
 # --- Collision: one invisible marker tile, far easier to author than
 # per-tile properties on a shared tileset.
 COLLIDE_ID = IDX['tilecount'] - 1
-solid = set(water_mask) | set(deco) | set(building_cells) | set(building_above)
+solid = set(water_mask) | tree_trunks | hedge_cells | set(building_cells) | set(building_above)
 # The whole point of a bridge is that the water under it stops being solid.
 # Parapets stay solid, so you can't walk off the side.
 solid -= bridge_deck_cells
@@ -576,12 +695,16 @@ for comp in (MAIN_HOUSE, POOL_HOUSE):
     if comp:
         for (r, c) in comp:
             core_anchor[(c, r)] = 1
+# The carriage loop is the garden's defining geometry; anchoring on the
+# buildings alone cropped half of it off the eastern edge.
+for cell in LOOP_CELLS:
+    core_anchor[cell] = 1
 
 _layers = {'Ground1': ground1, 'Ground2': ground2, 'Deco': deco,
            'Above': above, 'CollisionLayer': collision, 'CoreAnchor': core_anchor,
            'PathMask': {c: 1 for c in path_mask}}
 _layers, (spawn_px, spawn_py), CROP_X, CROP_Y, GRID_W, GRID_H = retile.crop_layers(
-    _layers, (spawn_px, spawn_py), GRID_W, GRID_H, pad=18, anchor=('CoreAnchor',))
+    _layers, (spawn_px, spawn_py), GRID_W, GRID_H, pad=10, anchor=('CoreAnchor',))
 _layers.pop('CoreAnchor')
 _path_cropped = _layers.pop('PathMask')
 

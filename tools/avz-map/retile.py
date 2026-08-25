@@ -65,7 +65,7 @@ def place_stamps(spots, stamp, w, h, occupied):
     the Above layer so the player can walk behind a tree canopy.
     """
     sw, sh = stamp['w'], stamp['h']
-    lower, upper = {}, {}
+    lower, upper, trunks = {}, {}, set()
     split = sh // 2 if sh > 1 else 0   # rows above `split` render over the player
 
     for (ox, oy) in spots:
@@ -80,7 +80,16 @@ def place_stamps(spots, stamp, w, h, occupied):
                 target[(ox + dx, oy + dy)] = tid
         occupied.update(cells)
 
-    return lower, upper
+        # Only the trunk blocks. Making the whole footprint solid would turn a
+        # 3x4 specimen into a 3x2 wall you have to walk around, when what the
+        # player sees is a trunk they should bump into and a canopy they pass
+        # under. Bottom row, middle third of the width.
+        base_y = oy + sh - 1
+        lo_x = ox + (sw - 1) // 3 if sw >= 3 else ox
+        hi_x = ox + sw - 1 - (sw - 1) // 3 if sw >= 3 else ox + sw - 1
+        trunks.update((tx, base_y) for tx in range(lo_x, hi_x + 1))
+
+    return lower, upper, trunks
 
 
 def flatten(cells, w, h, base=0):

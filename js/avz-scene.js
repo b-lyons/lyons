@@ -1,7 +1,7 @@
 // Bump whenever tools/avz-map regenerates the tileset or map. Pages serves
 // these with a long cache lifetime, so without this a returning visitor keeps
 // the old tileset against the new map and the whole thing renders as garbage.
-const ASSET_VERSION = '4';
+const ASSET_VERSION = '6';
 
 const DIR_ROW = { up: 0, left: 1, down: 2, right: 3 };
 const FRAMES_PER_ROW = 9;
@@ -18,7 +18,7 @@ const FALLBACK_SPAWN = { x: 2896, y: 4144 };
 
 // Fallback only — the real value is published as a `collisionGid` map property
 // by tools/avz-map/build_map.py, so the tileset can grow without breaking this.
-const FALLBACK_COLLISION_GID = 132;
+const FALLBACK_COLLISION_GID = 216;
 
 export class EstateScene extends Phaser.Scene {
   constructor(hooks = {}) {
