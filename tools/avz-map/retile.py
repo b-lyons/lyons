@@ -154,3 +154,39 @@ def crop_layers(layers, spawn, w, h, pad=4, anchor=('Buildings',)):
     sx = min(max(spawn[0] - x0 * 32, 16), nw * 32 - 16)
     sy = min(max(spawn[1] - y0 * 32, 16), nh * 32 - 16)
     return out, (sx, sy), x0, y0, nw, nh
+
+
+def stretch_building_2d(spec, x0, y0, width, height):
+    """Lay a left|mid|right building block across `width` AND `height` tiles.
+
+    The 1D version only ever covered the block's own 3 rows, so a footprint
+    deeper than that left bare roof-fill showing above and below it -- the grey
+    patches around the outbuildings. Growing the roof vertically and keeping a
+    single facade row at the bottom fills the real cadastral footprint.
+    """
+    h = spec['h']
+    left, mid, right = spec['left'], spec['mid'], spec['right']
+    nl, nr, nm = len(left[0]), len(right[0]), len(mid[0])
+    width = max(width, nl + nr)
+    height = max(height, 2)
+    inner = width - nl - nr
+
+    # row 0 is the roof ridge, row h-1 the facade, everything between is roof
+    def src_row(dy):
+        if dy == 0:
+            return 0
+        if dy == height - 1:
+            return h - 1
+        return min(1, h - 2)
+
+    lower, upper = {}, {}
+    for dy in range(height):
+        sr = src_row(dy)
+        row = list(left[sr])
+        for i in range(inner):
+            row.append(mid[sr][i % nm])
+        row += list(right[sr])
+        for dx, tid in enumerate(row):
+            target = upper if dy == 0 else lower
+            target[(x0 + dx, y0 + dy)] = tid
+    return lower, upper

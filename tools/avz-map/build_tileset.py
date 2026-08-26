@@ -28,7 +28,6 @@ OUT_COLS = 12  # output sheet width in tiles
 # Slice order emitted: NW N NE W C E SW S SE
 NINE_SLICE = {
     'grass':      (3, 166),   # fresh green, earth border
-    'lawn':       (0, 177),   # paler/yellower green -- second tone for mown patches
     'sand':       (3, 183),   # sand whose outer ring blends into water: riverbank
     # Border ring is hedge, centre is enclosed ground. We use only the ring, as
     # hedgerows following real field boundaries.
@@ -145,6 +144,32 @@ def main():
         right = [[add(grab(c0 + w - nr + dc, r0 + dr)) for dc in range(nr)] for dr in range(h)]
         index['h_stretch'][name] = {'h': h, 'left': left, 'mid': mid, 'right': right}
 
+    # Roof recolours. Every building carrying the same terracotta roof reads as
+    # a housing estate; the aerial actually shows a mix of slate and tile. Only
+    # warm roof pixels are shifted, so the timber facade and windows survive.
+    def _recolour_roof(img, mode):
+        out = img.copy()
+        px = out.load()
+        for yy in range(TS):
+            for xx in range(TS):
+                r_, g_, b_, a_ = px[xx, yy]
+                if a_ == 0 or not (r_ > g_ + 20 and g_ >= b_):
+                    continue
+                lum = (r_ * 0.4 + g_ * 0.45 + b_ * 0.15)
+                if mode == 'slate':
+                    px[xx, yy] = (int(lum * 0.72), int(lum * 0.80), int(lum * 0.95), a_)
+                else:  # weathered brown
+                    px[xx, yy] = (int(lum * 0.86), int(lum * 0.68), int(lum * 0.52), a_)
+        return out
+
+    for variant in ('slate', 'brown'):
+        base = index['h_stretch']['manor']
+        spec = {'h': base['h']}
+        for part in ('left', 'mid', 'right'):
+            spec[part] = [[add(_recolour_roof(tiles[tid], variant)) for tid in row]
+                          for row in base[part]]
+        index['h_stretch']['manor_' + variant] = spec
+
     index['buildings'] = {}
     for name, (c0, r0, w, h) in BUILDINGS.items():
         index['buildings'][name] = {
@@ -154,6 +179,48 @@ def main():
 
     for name, (c, r) in SINGLES.items():
         index['singles'][name] = add(grab(c, r))
+
+    # Derived tones. The sheet's obvious second green -- the (0,177) block --
+    # carries a pink border strip along the bottom of its centre tile, which
+    # tiled out as horizontal banding across every lawn. Deriving the variant
+    # from the grass tile itself guarantees a clean, perfectly matched tone.
+    index['derived'] = {}
+    grass_centre = index['nine_slice']['grass'][4]
+    for name, (mul, shift) in {
+        'grass_light': (1.055, 6),
+        'grass_dark': (0.94, -4),
+    }.items():
+        src_img = tiles[grass_centre]
+        px = src_img.load()
+        out = src_img.copy()
+        o = out.load()
+        for yy in range(TS):
+            for xx in range(TS):
+                r_, g_, b_, a_ = px[xx, yy]
+                o[xx, yy] = (
+                    max(0, min(255, int(r_ * mul) + shift)),
+                    max(0, min(255, int(g_ * mul) + shift // 2)),
+                    max(0, min(255, int(b_ * mul) - shift // 2)),
+                    a_,
+                )
+        index['derived'][name] = add(out)
+
+    # Clay court: the sheet has no red-clay surface, and the grey 'earth' block
+    # rendered the court as a slab of rubble.
+    # Recolour the whole path nine-slice, not just its centre: a flat fill gave
+    # the court hard square edges against the grass, which read as a red slab.
+    def _to_clay(img):
+        out = img.copy()
+        o = out.load()
+        for yy in range(TS):
+            for xx in range(TS):
+                r_, g_, b_, a_ = o[xx, yy]
+                if a_:
+                    o[xx, yy] = (min(255, int(r_ * 0.92)), int(g_ * 0.63), int(b_ * 0.55), a_)
+        return out
+
+    index['nine_slice']['clay'] = [add(_to_clay(tiles[t]))
+                                   for t in index['nine_slice']['path']]
 
     rows = -(-len(tiles) // OUT_COLS)
     sheet = Image.new('RGBA', (OUT_COLS * TS, rows * TS), (0, 0, 0, 0))

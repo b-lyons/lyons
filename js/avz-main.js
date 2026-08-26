@@ -1,4 +1,8 @@
-import { EstateScene } from './avz-scene.js';
+// The cache-busting version lives on this module's own URL, set in avz/index.html.
+// It cannot live *inside* a module: that module is itself cacheable, so a stale
+// copy keeps requesting its own stale version forever and the bust never fires.
+const ASSET_VERSION = new URL(import.meta.url).searchParams.get('v') || '0';
+const { EstateScene } = await import(`./avz-scene.js?v=${ASSET_VERSION}`);
 
 const boot = document.getElementById('boot');
 const bootLabel = document.getElementById('boot-label');
@@ -32,7 +36,7 @@ const scene = new EstateScene({
     container.focus({ preventScroll: true });
     wireDpad(sceneRef);
   },
-});
+}, ASSET_VERSION);
 
 window.game = new Phaser.Game({
   type: Phaser.AUTO,

@@ -410,13 +410,23 @@ if ISLAND and MAIN_HOUSE:
             x, y, span = ix + dx, iy + dy, 0
             while 0 <= x < GRID_W and 0 <= y < GRID_H and (x, y) in water_mask and span < 20:
                 x += dx; y += dy; span += 1
-            # span >= 2: a one-tile gap is a rasterisation pinch where the two
-            # channels nearly touch, not a channel anyone would bridge.
-            if 2 <= span and 0 <= x < GRID_W and 0 <= y < GRID_H and (x, y) in _mainland:
+            # span >= 3: a one- or two-tile gap is a rasterisation pinch where the
+            # two channels nearly touch, not a channel anyone would bridge.
+            # The landing must also sit ABOVE the house -- the causeway in the
+            # aerial runs off the back of the building, and scoring on distance
+            # alone kept picking a crossing on the near side instead.
+            house_top = bbox(MAIN_HOUSE)[0]
+            if (3 <= span and 0 <= x < GRID_W and 0 <= y < GRID_H
+                    and (x, y) in _mainland and y < house_top - 1):
                 d = math.hypot(x - house_xy[0], y - house_xy[1])
-                options.append((round(d), span, (ix, iy), (x, y), (dx, dy)))
+                if d <= 14:
+                    # Among crossings near the house, prefer the widest channel:
+                    # a 3-tile span reads as a box sitting on the bank rather
+                    # than a bridge over water.
+                    options.append((-span, round(d), (ix, iy), (x, y), (dx, dy)))
     if options:
         options.sort()
+        options = [(b, -a, c, d_, e) for (a, b, c, d_, e) in options]
         _, span, (ix, iy), (mx, my), (dx, dy) = options[0]
         x0, x1 = min(ix, mx), max(ix, mx)
         y0, y1 = min(iy, my), max(iy, my)
@@ -453,15 +463,33 @@ ground2.update(retile.autotile(water_mask | shore, GRID_W, GRID_H, NS['shallow']
 ground2.update(retile.autotile(water_mask, GRID_W, GRID_H, NS['water']))
 ground2.update(retile.autotile(path_mask, GRID_W, GRID_H, NS['path']))
 ground2.update(retile.autotile(earth_mask, GRID_W, GRID_H, NS['gravel']))
-ground2.update(retile.autotile(court_mask, GRID_W, GRID_H, NS['earth']))
+ground2.update(retile.autotile(court_mask, GRID_W, GRID_H, NS['clay']))
 
 # Ground1 is an opaque grass bed under everything; Ground2 paints over it.
 grass_c = NS['grass'][retile.C]
-lawn_c = NS['lawn'][retile.C]
+light_c = IDX['derived']['grass_light']
+dark_c = IDX['derived']['grass_dark']
 
 # Two grass tones in soft patches rather than one flat green. Two coarse octaves
 # of the existing deterministic hash give irregular blobs; a single fine-grained
 # sprinkle just looks like noise, and a single octave looks like tiling.
+def _hash2(x, y, salt):
+    """Proper integer hash in [0,1).
+
+    build_map's existing h() is (x*92821 + y*68917 + salt) % 1000 -- linear in
+    both axes, so sampling it on a lattice produced regular diagonal banding
+    rather than noise, and the grass came out visibly striped. Keep h() for the
+    scatter (changing it would reshuffle every tree) and mix properly here.
+    """
+    n = (x * 0x1f1f1f1f) ^ (y * 0x27d4eb2d) ^ (salt * 0x165667b1)
+    n &= 0xFFFFFFFF
+    n = (n ^ (n >> 15)) * 0x2545F491
+    n &= 0xFFFFFFFF
+    n = (n ^ (n >> 13)) * 0x3ad8025b
+    n &= 0xFFFFFFFF
+    return ((n ^ (n >> 16)) & 0xFFFF) / 65536.0
+
+
 def _vnoise(x, y, scale, salt):
     """Value noise on a lattice of `scale`, smoothstep-interpolated.
 
@@ -473,7 +501,7 @@ def _vnoise(x, y, scale, salt):
     x0, y0 = int(gx // 1), int(gy // 1)
     fx, fy = gx - x0, gy - y0
     sx, sy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
-    c = lambda ax, ay: h(ax, ay, salt) / 1000.0
+    c = lambda ax, ay: _hash2(ax, ay, salt)
     top = c(x0, y0) * (1 - sx) + c(x0 + 1, y0) * sx
     bot = c(x0, y0 + 1) * (1 - sx) + c(x0 + 1, y0 + 1) * sx
     return top * (1 - sy) + bot * sy
@@ -483,8 +511,8 @@ ground1 = {}
 for y in range(GRID_H):
     for x in range(GRID_W):
         # two octaves: broad drifts of mowing plus a finer break-up
-        n = _vnoise(x, y, 9, 7717) * 0.65 + _vnoise(x, y, 3, 7919) * 0.35
-        ground1[(x, y)] = lawn_c if n < 0.44 else grass_c
+        n = _vnoise(x, y, 11, 7717) * 0.6 + _vnoise(x, y, 4, 7919) * 0.4
+        ground1[(x, y)] = dark_c if n < 0.36 else (light_c if n > 0.64 else grass_c)
 
 # --- Trees: the old scatter placed single 32px tiles; promote them to the 2x2
 # stamps that give the map its depth (upper half draws over the player).
@@ -587,6 +615,30 @@ deco.update(hedges)
 occupied |= set(hedges)
 hedge_cells = set(hedges)
 
+# Avenue planting. A lime avenue flanking the approach is the defining feature
+# of a French estate drive, and it gives the parkland the linear structure that
+# open lawn alone cannot -- the eye follows it to the house.
+avenue = []
+for (px_, py_) in sorted(path_mask):
+    for dx, dy in ((2, 0), (-2, 0), (0, 2), (0, -2)):
+        cell = (px_ + dx, py_ + dy)
+        mid = (px_ + dx // 2, py_ + dy // 2)
+        if (cell in occupied or cell in path_mask or mid in path_mask
+                or cell in water_mask or cell in LOOP_CELLS):
+            continue
+        if not (0 <= cell[0] < GRID_W and 0 <= cell[1] < GRID_H):
+            continue
+        # every few tiles along the drive, so the trees read as a planted rhythm
+        if (px_ + py_) % 5 == 0 and _hash2(cell[0], cell[1], 4801) < 0.55:
+            avenue.append(cell)
+
+for cell in avenue:
+    kind = SPECIMENS[_hash2(cell[0], cell[1], 991) > 0.5 and 2 or 0]
+    lo, up, tr = retile.place_stamps([cell], STAMPS[kind], GRID_W, GRID_H, occupied)
+    deco.update(lo)
+    above.update(up)
+    tree_trunks |= tr
+
 lo, up, tr = retile.place_stamps(bush_spots, STAMPS['bush_small'], GRID_W, GRID_H, occupied)
 deco.update(lo)
 above.update(up)
@@ -600,23 +652,40 @@ building_above = {}
 MANOR = IDX['h_stretch']['manor']
 COTTAGES = [IDX['buildings']['cottage_red'], IDX['buildings']['cottage_green']]
 
+# Every real footprint becomes a building filling its own bbox. Previously
+# anything under 5 cells was skipped and larger ones only got a 3-row stamp,
+# so the cadastral roof-fill showed through as grey slabs around the yard.
 for i, comp in enumerate(sorted(buildings, key=len, reverse=True)):
-    if len(comp) < 5:
+    if len(comp) < 3:
         continue                      # cadastral noise, not a structure
     r0, r1, c0, c1 = bbox(comp)
-    width = c1 - c0 + 1
-
-    if len(comp) >= 15:               # manor / pool house / gatehouse
-        y_top = max(0, r1 - MANOR['h'] + 1)
-        lo, up = retile.stretch_building(MANOR, c0, y_top, width)
-    else:                             # outbuilding
+    width, depth = c1 - c0 + 1, r1 - r0 + 1
+    # Cadastral footprints are ragged 2.5 m rasterisations. Drawing them
+    # literally gives orange amoebas; filling their bounding box gives slabs.
+    # Real buildings are rectangular, so fit a clean rectangle of the right area
+    # at the footprint's centre and draw that.
+    if len(comp) >= 12:
+        fill_ratio = len(comp) / float(width * depth)
+        if fill_ratio < 0.75:
+            aspect = width / float(depth)
+            fit_d = max(2, int(round(math.sqrt(len(comp) / aspect))))
+            fit_w = max(2, int(round(len(comp) / float(fit_d))))
+            width, depth = min(width, fit_w), min(depth, fit_d)
+        cr_, cc_ = centroid(comp)
+        c0 = max(0, min(GRID_W - width, int(cc_ - width / 2)))
+        r0 = max(0, min(GRID_H - depth, int(cr_ - depth / 2)))
+        roof = ['manor', 'manor_slate', 'manor_brown', 'manor_slate'][
+            h(c0, r0, 8123) % 4]
+        lo, up = retile.stretch_building_2d(IDX['h_stretch'][roof], c0, r0, width, depth)
+    else:
         spec = COTTAGES[h(c0, r0, 4409) % len(COTTAGES)]
-        y_top = max(0, r1 - spec['h'] + 1)
+        cy = max(0, r1 - spec['h'] + 1)
         lo, up = {}, {}
         for dy in range(spec['h']):
             for dx in range(min(spec['w'], width)):
-                tid = spec['ids'][dy][dx]
-                (up if dy == 0 else lo)[(c0 + dx, y_top + dy)] = tid
+                cell = (c0 + dx, cy + dy)
+                if 0 <= cell[0] < GRID_W and 0 <= cell[1] < GRID_H:
+                    (up if dy == 0 else lo)[cell] = spec['ids'][dy][dx]
 
     building_cells.update(lo)
     building_above.update(up)
@@ -676,6 +745,16 @@ if BRIDGE_DECK:
     above.update(building_above)
     bridge_deck_cells -= set(building_cells) | set(building_above)
 
+# Trees are placed before buildings, so `occupied` could not know about them and
+# a canopy could land on a roof. Buildings win their own footprint on both
+# layers; without the Above sweep a canopy still drew over the roof body.
+_bcells = set(building_cells) | set(building_above)
+above = {k: v for k, v in above.items() if k not in _bcells or k in building_above}
+deco = {k: v for k, v in deco.items() if k not in _bcells or k in building_cells}
+deco.update(building_cells)
+above.update(building_above)
+tree_trunks -= _bcells
+
 # --- Collision: one invisible marker tile, far easier to author than
 # per-tile properties on a shared tileset.
 COLLIDE_ID = IDX['tilecount'] - 1
@@ -695,10 +774,17 @@ for comp in (MAIN_HOUSE, POOL_HOUSE):
     if comp:
         for (r, c) in comp:
             core_anchor[(c, r)] = 1
-# The carriage loop is the garden's defining geometry; anchoring on the
-# buildings alone cropped half of it off the eastern edge.
+# Anchor on the whole estate, not just the main house: the carriage loop, the
+# tennis court and every outbuilding. Framing on the house alone cropped half
+# the loop away and left far less ground to walk on than the place actually has.
 for cell in LOOP_CELLS:
     core_anchor[cell] = 1
+for cell in court_mask:
+    core_anchor[cell] = 1
+for comp in buildings:
+    if len(comp) >= 3:
+        for (r, c) in comp:
+            core_anchor[(c, r)] = 1
 
 _layers = {'Ground1': ground1, 'Ground2': ground2, 'Deco': deco,
            'Above': above, 'CollisionLayer': collision, 'CoreAnchor': core_anchor,

@@ -1,8 +1,3 @@
-// Bump whenever tools/avz-map regenerates the tileset or map. Pages serves
-// these with a long cache lifetime, so without this a returning visitor keeps
-// the old tileset against the new map and the whole thing renders as garbage.
-const ASSET_VERSION = '6';
-
 const DIR_ROW = { up: 0, left: 1, down: 2, right: 3 };
 const FRAMES_PER_ROW = 9;
 const SPEED = 140;
@@ -18,11 +13,12 @@ const FALLBACK_SPAWN = { x: 2896, y: 4144 };
 
 // Fallback only — the real value is published as a `collisionGid` map property
 // by tools/avz-map/build_map.py, so the tileset can grow without breaking this.
-const FALLBACK_COLLISION_GID = 216;
+const FALLBACK_COLLISION_GID = 252;
 
 export class EstateScene extends Phaser.Scene {
-  constructor(hooks = {}) {
+  constructor(hooks = {}, assetVersion = '0') {
     super('EstateScene');
+    this.assetVersion = assetVersion;
     this.facing = 'down';
     this.hooks = hooks;
     this.touchDir = { up: false, down: false, left: false, right: false };
@@ -32,9 +28,9 @@ export class EstateScene extends Phaser.Scene {
     this.load.on('progress', (v) => this.hooks.onProgress?.(v));
     this.load.on('loaderror', (file) => this.hooks.onError?.(file?.src || file?.key));
 
-    this.load.image('tileset', `/assets/avz/tileset.png?v=${ASSET_VERSION}`);
-    this.load.tilemapTiledJSON('avz-map', `/assets/avz/avz-map.json?v=${ASSET_VERSION}`);
-    this.load.spritesheet('player', `/assets/avz/player.png?v=${ASSET_VERSION}`, {
+    this.load.image('tileset', `/assets/avz/tileset.png?v=${this.assetVersion}`);
+    this.load.tilemapTiledJSON('avz-map', `/assets/avz/avz-map.json?v=${this.assetVersion}`);
+    this.load.spritesheet('player', `/assets/avz/player.png?v=${this.assetVersion}`, {
       frameWidth: 64,
       frameHeight: 64,
     });
