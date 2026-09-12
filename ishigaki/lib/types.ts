@@ -2,7 +2,7 @@ export type CategoryId =
   | "food"
   | "drink"
   | "beach"
-  | "sea"
+  | "daytrip"
   | "sights"
   | "practical";
 

@@ -94,43 +94,43 @@ insert into places (name, name_ja, category, area, blurb, notes, lat, lng, must_
  24.3594, 124.2281, false, 'Book a village snorkel boat a day ahead', 'Calm mornings'),
 
 -- ── On the water ─────────────────────────────────────────────────────────────
-('Manta Scramble', 'マンタスクランブル', 'sea', 'Kabira',
+('Manta Scramble', 'マンタスクランブル', 'daytrip', 'Kabira',
  'A cleaning station off Kabira Ishizaki where reef mantas queue up over the coral heads.',
  'Boat access only, from Kabira. Dive and snorkel operators both run trips, and it is the single best thing in the water here.',
  24.4790, 124.1290, true, 'Book ahead in summer — boats fill up', 'June to November, best odds in autumn'),
 
-('Blue Cave', '青の洞窟', 'sea', 'Yonehara',
+('Blue Cave', '青の洞窟', 'daytrip', 'Yonehara',
  'A limestone sea cave near Yonehara that glows blue when the light comes in off the water.',
  'Usually sold as a combined kayak, cave and snorkel half-day.',
  24.4660, 124.1800, false, 'Tour only', 'Mid-morning light'),
 
-('Kabira Bay glass-bottom boats', '川平湾グラスボート', 'sea', 'Kabira',
+('Kabira Bay glass-bottom boats', '川平湾グラスボート', 'daytrip', 'Kabira',
  'Half-hour loops over the coral and giant clams in the bay, in boats with a window in the floor.',
  'Several operators share the jetty and you can just turn up. The only way to actually get out onto the bay.',
  24.4530, 124.1465, false, null, null),
 
-('Nagura Bay mangrove kayak', '名蔵湾カヤック', 'sea', 'West coast',
+('Nagura Bay mangrove kayak', '名蔵湾カヤック', 'daytrip', 'West coast',
  'Paddling up into the mangrove channels on the west coast, usually around slack tide.',
  'Calm, shaded and forgiving. Several operators run half-days.',
  24.4020, 124.1250, false, 'Book a day or two ahead', null),
 
-('Phantom Island sandbar', '幻の島(浜島)', 'sea', 'Off-island',
+('Phantom Island sandbar', '幻の島(浜島)', 'daytrip', 'Off-island',
  'A crescent of bare white sand that surfaces out of open sea at low tide and then disappears again.',
  'Boat trips run from Ishigaki port, usually combined with snorkelling off Kohama.',
  24.3210, 124.0180, true, 'Tour only, and tide-dependent', 'Low tide'),
 
 -- ── Day trips ────────────────────────────────────────────────────────────────
-('Taketomi Island', '竹富島', 'sights', 'Off-island',
+('Taketomi Island', '竹富島', 'daytrip', 'Off-island',
  'Fifteen minutes by ferry: one village of red-tiled roofs, coral walls and white sand lanes, with water buffalo carts and no traffic.',
  'Go on the first ferry or stay the night — it empties out beautifully after the last boat. Rent a bike at the port. Kondoi Beach on the west side is the best swimming in the Yaeyamas.',
  24.3313, 124.0870, true, null, 'First ferry, or late afternoon'),
 
-('Iriomote Island', '西表島', 'sights', 'Off-island',
+('Iriomote Island', '西表島', 'daytrip', 'Off-island',
  'The wild one: ninety per cent jungle, mangrove rivers, waterfalls, and the almost-never-seen Iriomote cat.',
  'Forty minutes by ferry. Doable as a long day trip — Urauchi River cruise plus the walk to Mariyudu Falls — but much better overnight.',
  24.3300, 123.8100, false, 'Book the river cruise ahead in season', null),
 
-('Kohama Island', '小浜島', 'sights', 'Off-island',
+('Kohama Island', '小浜島', 'daytrip', 'Off-island',
  'Sugar cane hills and a single ridge road with views out across the whole Yaeyama group.',
  'An easy half-day: ferry over, rent a bike, ride up Shuga-michi.',
  24.3430, 123.9740, false, null, null),

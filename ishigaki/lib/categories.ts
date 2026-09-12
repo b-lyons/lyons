@@ -1,4 +1,4 @@
-import { Info, Martini, Mountain, Umbrella, UtensilsCrossed, Waves } from "lucide-react";
+import { Info, Martini, Mountain, Ship, Umbrella, UtensilsCrossed } from "lucide-react";
 import type { CategoryId } from "./types";
 
 export type Category = {
@@ -37,12 +37,12 @@ export const CATEGORIES: Category[] = [
     glyph: '<path d="M12 12v9"/><path d="M3 12a9 9 0 0 1 18 0Z"/>',
   },
   {
-    id: "sea",
-    label: "On the water",
-    short: "Water",
+    id: "daytrip",
+    label: "Day trips",
+    short: "Trips",
     color: "#2A5FA8",
-    icon: Waves,
-    glyph: '<path d="M2 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 16c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+    icon: Ship,
+    glyph: '<path d="M3.5 17h17l-2.5 4H6Z"/><path d="M12 2.5v14"/><path d="M12 4.5l6 8.5h-6"/>',
   },
   {
     id: "sights",
