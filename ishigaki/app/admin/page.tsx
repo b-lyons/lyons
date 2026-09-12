@@ -38,9 +38,30 @@ function parseCoordinates(input: string): { lat: number; lng: number } | null {
   return { lat, lng };
 }
 
-function nullIfBlank(v: string): string | null {
-  const t = v.trim();
-  return t === "" ? null : t;
+/**
+ * Trim and blank-to-null, applied once on save.
+ *
+ * Never do this per keystroke on a controlled input: a trailing space is
+ * trimmed off before it can render, so the space bar appears dead while you
+ * are typing at the end of a field, but works when you insert one in the
+ * middle of existing text.
+ */
+function normalise(draft: PlaceDraft): PlaceDraft {
+  const text = (v: string | null) => {
+    const t = (v ?? "").trim();
+    return t === "" ? null : t;
+  };
+  return {
+    ...draft,
+    name: draft.name.trim(),
+    name_ja: text(draft.name_ja),
+    area: text(draft.area),
+    blurb: text(draft.blurb),
+    notes: text(draft.notes),
+    booking: text(draft.booking),
+    best_time: text(draft.best_time),
+    website: text(draft.website),
+  };
 }
 
 export default function AdminPage() {
@@ -131,7 +152,7 @@ export default function AdminPage() {
     setSaving(true);
     setMessage(null);
 
-    const payload = { ...draft, name: draft.name.trim() };
+    const payload = normalise(draft);
     const { data, error } = editingId
       ? await supabase.from("places").update(payload).eq("id", editingId).select("id").single()
       : await supabase.from("places").insert(payload).select("id").single();
@@ -329,7 +350,7 @@ export default function AdminPage() {
                   className={field}
                   lang="ja"
                   value={draft.name_ja ?? ""}
-                  onChange={(e) => setDraft({ ...draft, name_ja: nullIfBlank(e.target.value) })}
+                  onChange={(e) => setDraft({ ...draft, name_ja: e.target.value })}
                   placeholder="石垣島"
                 />
               </label>
@@ -354,7 +375,7 @@ export default function AdminPage() {
                 <input
                   className={field}
                   value={draft.area ?? ""}
-                  onChange={(e) => setDraft({ ...draft, area: nullIfBlank(e.target.value) })}
+                  onChange={(e) => setDraft({ ...draft, area: e.target.value })}
                   placeholder="Kabira"
                 />
               </label>
@@ -365,7 +386,7 @@ export default function AdminPage() {
               <textarea
                 className={`${field} min-h-[64px] resize-y`}
                 value={draft.blurb ?? ""}
-                onChange={(e) => setDraft({ ...draft, blurb: nullIfBlank(e.target.value) })}
+                onChange={(e) => setDraft({ ...draft, blurb: e.target.value })}
               />
             </label>
 
@@ -374,7 +395,7 @@ export default function AdminPage() {
               <textarea
                 className={`${field} min-h-[80px] resize-y`}
                 value={draft.notes ?? ""}
-                onChange={(e) => setDraft({ ...draft, notes: nullIfBlank(e.target.value) })}
+                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
               />
             </label>
 
@@ -421,7 +442,7 @@ export default function AdminPage() {
                   className={field}
                   value={draft.best_time ?? ""}
                   onChange={(e) =>
-                    setDraft({ ...draft, best_time: nullIfBlank(e.target.value) })
+                    setDraft({ ...draft, best_time: e.target.value })
                   }
                   placeholder="Sunset"
                 />
@@ -431,7 +452,7 @@ export default function AdminPage() {
                 <input
                   className={field}
                   value={draft.booking ?? ""}
-                  onChange={(e) => setDraft({ ...draft, booking: nullIfBlank(e.target.value) })}
+                  onChange={(e) => setDraft({ ...draft, booking: e.target.value })}
                   placeholder="Book a week ahead"
                 />
               </label>
@@ -443,7 +464,7 @@ export default function AdminPage() {
                 className={field}
                 type="url"
                 value={draft.website ?? ""}
-                onChange={(e) => setDraft({ ...draft, website: nullIfBlank(e.target.value) })}
+                onChange={(e) => setDraft({ ...draft, website: e.target.value })}
                 placeholder="https://"
               />
             </label>
