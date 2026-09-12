@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Plus, Star, Trash2, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { CATEGORIES, CATEGORY_BY_ID } from "@/lib/categories";
 import type { CategoryId, Place, PlaceDraft } from "@/lib/types";
+import { PhotoManager } from "@/components/PhotoManager";
 
 const PLACE_COLUMNS =
   "id,name,name_ja,category,area,blurb,notes,lat,lng,must_do,booking,best_time,price_band,website";
@@ -52,6 +53,12 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [filter, setFilter] = useState("");
+
+  // Stable identity: PhotoManager takes this as an effect dependency.
+  const handlePhotoError = useCallback(
+    (text: string) => setMessage({ kind: "err", text }),
+    []
+  );
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
@@ -127,18 +134,22 @@ export default function AdminPage() {
     setMessage(null);
 
     const payload = { ...draft, name: draft.name.trim() };
-    const { error } = editingId
-      ? await supabase.from("places").update(payload).eq("id", editingId)
-      : await supabase.from("places").insert(payload);
+    const { data, error } = editingId
+      ? await supabase.from("places").update(payload).eq("id", editingId).select("id").single()
+      : await supabase.from("places").insert(payload).select("id").single();
 
     setSaving(false);
     if (error) {
       setMessage({ kind: "err", text: error.message });
       return;
     }
-    setMessage({ kind: "ok", text: editingId ? "Saved." : `Added ${payload.name}.` });
+    setMessage({
+      kind: "ok",
+      text: editingId ? "Saved." : `Added ${payload.name}. You can add photos now.`,
+    });
+    // Stay on the new place rather than clearing the form — photos need its id.
+    if (!editingId && data?.id) setEditingId(data.id);
     await reload();
-    if (!editingId) startNew();
   }
 
   async function remove(place: Place) {
@@ -482,6 +493,17 @@ export default function AdminPage() {
               )}
             </div>
           </form>
+
+          {editingId ? (
+            <PhotoManager
+              placeId={editingId}
+              onError={handlePhotoError}
+            />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-hairline p-5 text-[13px] text-quiet">
+              Save the place first — photos attach to it once it has an id.
+            </div>
+          )}
 
           {/* ── Invite ─────────────────────────────────────────────── */}
           <form

@@ -22,9 +22,14 @@ There is no public page and no sign-up form.
 - `robots.txt` disallows everything and the pages are marked `noindex`. That
   only stops polite crawlers; the RLS above is what actually protects the data.
 
+Photos get the same treatment. Uploads go to a **private** bucket, never a
+public one, and the card fetches a signed URL that expires after an hour. An
+image link copied out of the page stops working on its own, and an anonymous
+request for the bucket gets nothing.
+
 Read access and write access are separate. Anyone who can sign in can read the
 whole guide. Only emails in the `guide_admins` table can add, edit or delete
-places, or invite anyone else.
+places and photos, or invite anyone else.
 
 ## Setting it up
 
@@ -48,6 +53,8 @@ In the SQL editor, run in order:
 2. `supabase/02_rls.sql` — the policies.
 3. `supabase/03_seed.sql` — 39 starter places. It begins with `delete from
    places`, so drop that line once you have started editing.
+4. `supabase/04_photos.sql` — the `place_photos` table and the private
+   `place-photos` storage bucket, with matching policies.
 
 Then make yourself an editor:
 
@@ -100,6 +107,10 @@ up into the parent.
   straight off the clipboard (right-click a spot in Google Maps → the
   coordinates at the top of the menu copy on click) and fills in both fields.
 - **Highlight** gives a place a bigger pin and floats it to the top of the list.
+- **Photos** appear once a place has been saved, since they attach to its id.
+  Upload straight from a phone or a folder, or paste a link to an image hosted
+  elsewhere. Captions and credits save when you click out of the field, the
+  arrows reorder, and the first photo is the one the card leads with.
 - **Invite someone** creates an account and sets its password. There is no
   email sent — pass the password on yourself.
 
@@ -124,6 +135,11 @@ practical catch. Two caveats worth knowing before you hand the link over:
   stale and inventing them would be worse than omitting them. Every place has a
   **Look up** button that runs a Google Maps search on its Japanese name, which
   is where the current hours actually live.
+- **No photos ship with it.** Nothing is seeded, because the photos worth
+  having here are your own. A place without any keeps the plain coloured card;
+  add one and it grows a hero image and a gallery. Watch what you upload
+  straight off a phone, though — a 5 MB original is 5 MB down someone''s mobile
+  data on a trip, so resize before uploading if you are adding a lot.
 
 The restaurant and bar entries are the ones most worth your own pass: they
 change hands, and your opinion is the point of the guide.

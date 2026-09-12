@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { List, Loader2, LogOut, Map as MapIcon, PencilLine } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { ALL_CATEGORY_IDS } from "@/lib/categories";
-import type { CategoryId, Place } from "@/lib/types";
+import { PHOTO_COLUMNS, groupPhotosByPlace, resolvePhotoUrls } from "@/lib/photos";
+import type { CategoryId, Photo, Place } from "@/lib/types";
 import { PlaceDetail } from "@/components/PlaceDetail";
 import {
   BrandMark,
@@ -32,6 +33,8 @@ const PLACE_COLUMNS =
 export default function GuidePage() {
   const router = useRouter();
   const [places, setPlaces] = useState<Place[]>([]);
+  const [photosByPlace, setPhotosByPlace] = useState<Record<string, Photo[]>>({});
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,16 +55,19 @@ export default function GuidePage() {
         return;
       }
 
-      const [{ data, error: dbError }, { data: adminFlag }] = await Promise.all([
-        supabase.from("places").select(PLACE_COLUMNS).order("name"),
-        supabase.rpc("is_guide_admin"),
-      ]);
+      const [{ data, error: dbError }, { data: photoRows }, { data: adminFlag }] =
+        await Promise.all([
+          supabase.from("places").select(PLACE_COLUMNS).order("name"),
+          supabase.from("place_photos").select(PHOTO_COLUMNS).order("sort_order"),
+          supabase.rpc("is_guide_admin"),
+        ]);
 
       if (dbError) {
         setError(dbError.message);
       } else {
         setPlaces((data ?? []) as Place[]);
       }
+      setPhotosByPlace(groupPhotosByPlace((photoRows ?? []) as Photo[]));
       setIsAdmin(adminFlag === true);
       setLoading(false);
     })();
@@ -101,6 +107,26 @@ export default function GuidePage() {
     () => visible.find((p) => p.id === selectedId) ?? null,
     [visible, selectedId]
   );
+
+  const selectedPhotos = useMemo(
+    () => (selectedId ? (photosByPlace[selectedId] ?? []) : []),
+    [photosByPlace, selectedId]
+  );
+
+  // Bucket files are private, so sign them when a card opens rather than up
+  // front. Re-signing on every open also keeps the hour-long URLs fresh.
+  useEffect(() => {
+    if (selectedPhotos.length === 0) return;
+    let cancelled = false;
+
+    resolvePhotoUrls(selectedPhotos).then((urls) => {
+      if (!cancelled) setPhotoUrls((prev) => ({ ...prev, ...urls }));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPhotos]);
 
   function toggleCategory(id: CategoryId) {
     setActiveCategories((prev) => {
@@ -240,9 +266,15 @@ export default function GuidePage() {
         )}
 
         {selected && (
-          <div className="pointer-events-none absolute inset-x-3 bottom-3 z-[500] md:inset-x-auto md:bottom-4 md:left-4 md:w-[380px]">
+          <div className="pointer-events-none absolute inset-x-3 bottom-3 z-[500] md:inset-x-auto md:bottom-4 md:left-4 md:w-[400px]">
             <div className="pointer-events-auto">
-              <PlaceDetail place={selected} onClose={() => setSelectedId(null)} />
+              <PlaceDetail
+                key={selected.id}
+                place={selected}
+                photos={selectedPhotos}
+                photoUrls={photoUrls}
+                onClose={() => setSelectedId(null)}
+              />
             </div>
           </div>
         )}
