@@ -1,8 +1,10 @@
 -- Ishigaki guide — seed places
--- Safe to re-run: it clears the table first. Delete that line if you have
--- already started editing and only want to append.
-
-delete from places;
+--
+-- A starting set to edit down, nothing more. This used to open with
+-- "delete from places", which would wipe real work on any project where
+-- someone had started editing; it appends now, so re-running it duplicates
+-- rows rather than destroying them. On a fresh project the table is empty
+-- anyway.
 
 insert into places (name, name_ja, category, area, blurb, notes, lat, lng, must_do, booking, best_time) values
 

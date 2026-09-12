@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Maximize2 } from "lucide-react";
-import { CATEGORY_BY_ID } from "@/lib/categories";
+import { categoryFor } from "@/lib/categories";
 import type { Place } from "@/lib/types";
 
 // The whole Yaeyama group, so Taketomi and Iriomote are reachable by panning.
@@ -16,9 +16,9 @@ const ISLAND_BOUNDS: L.LatLngBoundsLiteral = [
 
 /** Teardrop pin with the category glyph knocked out in white. */
 function pinHtml(place: Place, selected: boolean) {
-  const cat = CATEGORY_BY_ID[place.category];
-  const color = cat?.color ?? "#7B6E93";
-  const glyph = cat?.glyph ?? "";
+  const cat = categoryFor(place.category);
+  const color = cat.color;
+  const glyph = cat.glyph;
   // Must-do places get a physically bigger pin — size reads as importance
   // without stealing a colour from the category scale.
   const scale = place.must_do ? 1.28 : 1;

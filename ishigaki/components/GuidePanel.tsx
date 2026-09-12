@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, Star, X } from "lucide-react";
-import { CATEGORIES, CATEGORY_BY_ID } from "@/lib/categories";
+import { CATEGORIES, categoryFor } from "@/lib/categories";
 import type { CategoryId, Place } from "@/lib/types";
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
@@ -129,7 +129,7 @@ export function PlaceList({
   return (
     <ul className="flex flex-col gap-1">
       {places.map((place) => {
-        const cat = CATEGORY_BY_ID[place.category];
+        const cat = categoryFor(place.category);
         const selected = place.id === selectedId;
         return (
           <li key={place.id}>

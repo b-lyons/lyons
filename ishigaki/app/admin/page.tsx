@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Plus, Star, Trash2, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { CATEGORIES, CATEGORY_BY_ID } from "@/lib/categories";
+import { CATEGORIES, categoryFor } from "@/lib/categories";
 import type { CategoryId, Place, PlaceDraft } from "@/lib/types";
 import { PhotoManager } from "@/components/PhotoManager";
 
@@ -303,7 +303,7 @@ export default function AdminPage() {
                 >
                   <span
                     className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ background: CATEGORY_BY_ID[place.category].color }}
+                    style={{ background: categoryFor(place.category).color }}
                     aria-hidden
                   />
                   <span className="truncate text-[13px] text-ink">{place.name}</span>

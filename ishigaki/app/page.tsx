@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { List, Loader2, LogOut, Map as MapIcon, PencilLine } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { ALL_CATEGORY_IDS } from "@/lib/categories";
+import { ALL_CATEGORY_IDS, isKnownCategory } from "@/lib/categories";
 import { PHOTO_COLUMNS, groupPhotosByPlace, resolvePhotoUrls } from "@/lib/photos";
 import type { CategoryId, Photo, Place } from "@/lib/types";
 import { PlaceDetail } from "@/components/PlaceDetail";
@@ -95,7 +95,9 @@ export default function GuidePage() {
   const visible = useMemo(
     () =>
       searched
-        .filter((p) => activeCategories.has(p.category))
+        // A category with no chip cannot be filtered by one, so always show it
+        // rather than hiding the row and looking like data loss.
+        .filter((p) => activeCategories.has(p.category) || !isKnownCategory(p.category))
         .filter((p) => (mustDoOnly ? p.must_do : true))
         .sort((a, b) =>
           a.must_do === b.must_do ? a.name.localeCompare(b.name) : a.must_do ? -1 : 1

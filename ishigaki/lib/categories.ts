@@ -67,3 +67,26 @@ export const CATEGORY_BY_ID = Object.fromEntries(
 ) as Record<CategoryId, Category>;
 
 export const ALL_CATEGORY_IDS = CATEGORIES.map((c) => c.id);
+
+/**
+ * Stand-in for a category the app does not recognise — a value typed straight
+ * into the database, or one this version renamed. The data is the source of
+ * truth and the app is often the older half, so render it plainly rather than
+ * crashing or, worse, quietly dropping the row.
+ */
+const UNKNOWN_CATEGORY: Category = {
+  id: "practical",
+  label: "Other",
+  short: "Other",
+  color: "#7B6E93",
+  icon: Info,
+  glyph: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/>',
+};
+
+export function categoryFor(id: string): Category {
+  return CATEGORY_BY_ID[id as CategoryId] ?? UNKNOWN_CATEGORY;
+}
+
+export function isKnownCategory(id: string): boolean {
+  return id in CATEGORY_BY_ID;
+}

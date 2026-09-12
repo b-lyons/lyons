@@ -9,7 +9,7 @@ import {
   Star,
   X,
 } from "lucide-react";
-import { CATEGORY_BY_ID } from "@/lib/categories";
+import { categoryFor } from "@/lib/categories";
 import { directionsUrl, mapsSearchUrl, type Photo, type Place } from "@/lib/types";
 import { Lightbox } from "./Lightbox";
 
@@ -44,7 +44,7 @@ export function PlaceDetail({
   photoUrls: Record<string, string>;
   onClose: () => void;
 }) {
-  const cat = CATEGORY_BY_ID[place.category];
+  const cat = categoryFor(place.category);
   const Icon = cat.icon;
 
   // The caller keys this component on place.id, so selecting another place
