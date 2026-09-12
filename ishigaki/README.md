@@ -19,6 +19,13 @@ There is no public page and no sign-up form.
 - Accounts exist only because an editor created one in `/admin`, which calls a
   server route holding the service-role key. That route checks the caller's own
   token *and* that they are a listed editor before it will do anything.
+- **Self-service sign-up must be turned off in the Supabase dashboard.** This
+  is the one thing the code cannot do for you, and it matters: the anon key
+  ships in the browser bundle, so while a Supabase project accepts sign-ups
+  anyone holding that key can call `auth.signUp` directly, skip the app
+  entirely, and land a confirmed account that RLS then treats as a legitimate
+  reader. Having no sign-up page is not the same as having no sign-up. See
+  step 1 below.
 - `robots.txt` disallows everything and the pages are marked `noindex`. That
   only stops polite crawlers; the RLS above is what actually protects the data.
 
@@ -46,7 +53,13 @@ alongside `deepnidra`. Two things to know:
   to coexist; you would share the user list with that site, which may or may
   not be what you want).
 
-In the SQL editor, run in order:
+**Turn off public sign-ups first.** Under **Authentication → Sign In / Providers
+→ Email**, disable "Allow new users to sign up" (older dashboards put this under
+Authentication → Settings). Leave it on and the guide is open to anyone who
+reads the anon key out of the page source. The labels move between dashboard
+versions; the setting you want is the one that stops self-registration.
+
+Then, in the SQL editor, run in order:
 
 1. `supabase/01_schema.sql` — the `places` and `guide_admins` tables, and the
    `is_guide_admin()` helper.
@@ -63,13 +76,18 @@ insert into guide_admins (email) values ('you@example.com');
 ```
 
 Create your own account under **Authentication → Users → Add user** (tick
-"Auto Confirm User"), using that same email. After that you can invite everyone
-else from `/admin` rather than the dashboard.
+"Auto Confirm User"), using that same email — it has to match the one you just
+put in `guide_admins`, or you will be able to read the guide but not edit it.
+After that you can invite everyone else from `/admin` rather than the dashboard.
+Creating users this way keeps working with sign-ups disabled: it goes through
+the service role, which is exactly the point.
 
 ### 2. Environment
 
 Copy `.env.example` to `.env.local` and fill in the three values from
-**Project settings → API**:
+**Project settings → API**. Newer dashboards call these the *publishable* and
+*secret* keys rather than *anon* and *service_role*; they are the same two
+things, public-safe and server-only:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=
