@@ -1,11 +1,13 @@
 -- Ishigaki guide — row level security
 -- Nothing is readable without a valid session; only listed editors can write.
 
+-- Both are already enabled by 01; repeated here so this file still stands up
+-- on its own. Enabling twice is a no-op.
 alter table places enable row level security;
 alter table guide_admins enable row level security;
 
--- guide_admins gets RLS with NO policies: unreachable through the API by
--- anon and authenticated alike. Only the service role and the security-definer
+-- guide_admins gets NO policies below: unreachable through the API by anon
+-- and authenticated alike. Only the service role and the security-definer
 -- is_guide_admin() function can see it.
 
 drop policy if exists "Signed-in guests can read places" on places;

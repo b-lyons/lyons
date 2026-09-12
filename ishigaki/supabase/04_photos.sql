@@ -18,10 +18,12 @@ create table if not exists place_photos (
   )
 );
 
+-- Enabled here rather than further down, so the table is never briefly
+-- exposed between being created and being protected.
+alter table place_photos enable row level security;
+
 create index if not exists place_photos_place_idx
   on place_photos (place_id, sort_order, created_at);
-
-alter table place_photos enable row level security;
 
 drop policy if exists "Signed-in guests can read photos" on place_photos;
 create policy "Signed-in guests can read photos"

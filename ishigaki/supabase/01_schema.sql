@@ -21,11 +21,20 @@ create table if not exists places (
 
 create index if not exists places_category_idx on places (category);
 
+-- On immediately, in the same script that creates the table: a table that
+-- exists without RLS is readable by anyone holding the anon key, so there
+-- should never be a window where that is true. Policies follow in 02.
+alter table places enable row level security;
+
 -- Who is allowed to edit the guide. Everyone who can sign in can read it;
 -- only emails listed here can write. Add yourself before using /admin.
 create table if not exists guide_admins (
   email text primary key
 );
+
+-- RLS on, and 02 deliberately gives it no policies at all: unreachable
+-- through the API by anon and authenticated alike.
+alter table guide_admins enable row level security;
 
 -- Seed yourself as the editor:
 -- insert into guide_admins (email) values ('you@example.com') on conflict do nothing;
