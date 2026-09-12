@@ -1,0 +1,69 @@
+import { Info, Martini, Mountain, Umbrella, UtensilsCrossed, Waves } from "lucide-react";
+import type { CategoryId } from "./types";
+
+export type Category = {
+  id: CategoryId;
+  label: string;
+  short: string;
+  color: string;
+  icon: typeof Info;
+  /** Inner glyph for the Leaflet div-icon pins, drawn on a 24x24 viewBox. */
+  glyph: string;
+};
+
+export const CATEGORIES: Category[] = [
+  {
+    id: "food",
+    label: "Food",
+    short: "Eat",
+    color: "#D9463A",
+    icon: UtensilsCrossed,
+    glyph: '<path d="M4 12h16a8 8 0 0 1-16 0Z"/><path d="M3 20h18"/>',
+  },
+  {
+    id: "drink",
+    label: "Drink",
+    short: "Drink",
+    color: "#DE8C1F",
+    icon: Martini,
+    glyph: '<path d="M4 5h16l-8 8Z"/><path d="M12 13v6"/><path d="M8 19h8"/>',
+  },
+  {
+    id: "beach",
+    label: "Beaches",
+    short: "Beach",
+    color: "#12A3BC",
+    icon: Umbrella,
+    glyph: '<path d="M12 12v9"/><path d="M3 12a9 9 0 0 1 18 0Z"/>',
+  },
+  {
+    id: "sea",
+    label: "On the water",
+    short: "Water",
+    color: "#2A5FA8",
+    icon: Waves,
+    glyph: '<path d="M2 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 16c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+  },
+  {
+    id: "sights",
+    label: "Sights & nature",
+    short: "See",
+    color: "#3B8F58",
+    icon: Mountain,
+    glyph: '<path d="M3 20 10 7l4 7 2-3 5 9Z"/>',
+  },
+  {
+    id: "practical",
+    label: "Practical",
+    short: "Info",
+    color: "#7B6E93",
+    icon: Info,
+    glyph: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/>',
+  },
+];
+
+export const CATEGORY_BY_ID = Object.fromEntries(
+  CATEGORIES.map((c) => [c.id, c])
+) as Record<CategoryId, Category>;
+
+export const ALL_CATEGORY_IDS = CATEGORIES.map((c) => c.id);
