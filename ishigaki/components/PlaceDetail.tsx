@@ -5,7 +5,6 @@ import {
   CalendarClock,
   ExternalLink,
   ImageIcon,
-  Link2,
   Navigation,
   Star,
   X,
@@ -167,7 +166,7 @@ export function PlaceDetail({
               </p>
             )}
 
-            {(place.best_time || place.booking || place.price_band || place.website) && (
+            {(place.best_time || place.booking || place.website) && (
               <div className="mt-5 flex flex-col gap-4 border-t border-hairline-soft pt-5">
                 {place.best_time && (
                   <Row icon={CalendarClock} label="When">
@@ -177,11 +176,6 @@ export function PlaceDetail({
                 {place.booking && (
                   <Row icon={Star} label="Booking">
                     {place.booking}
-                  </Row>
-                )}
-                {place.price_band && (
-                  <Row icon={Link2} label="Rough cost">
-                    {place.price_band}
                   </Row>
                 )}
                 {place.website && (

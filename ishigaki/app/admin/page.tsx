@@ -10,7 +10,7 @@ import type { CategoryId, Place, PlaceDraft } from "@/lib/types";
 import { PhotoManager } from "@/components/PhotoManager";
 
 const PLACE_COLUMNS =
-  "id,name,name_ja,category,area,blurb,notes,lat,lng,must_do,booking,best_time,price_band,website";
+  "id,name,name_ja,category,area,blurb,notes,lat,lng,must_do,booking,best_time,website";
 
 const EMPTY: PlaceDraft = {
   name: "",
@@ -24,7 +24,6 @@ const EMPTY: PlaceDraft = {
   must_do: false,
   booking: null,
   best_time: null,
-  price_band: null,
   website: null,
 };
 
@@ -118,7 +117,6 @@ export default function AdminPage() {
       must_do: place.must_do,
       booking: place.booking,
       best_time: place.best_time,
-      price_band: place.price_band,
       website: place.website,
     });
     setMessage(null);
@@ -416,7 +414,7 @@ export default function AdminPage() {
               </label>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5">
                 <span className={label}>Best time</span>
                 <input
@@ -435,17 +433,6 @@ export default function AdminPage() {
                   value={draft.booking ?? ""}
                   onChange={(e) => setDraft({ ...draft, booking: nullIfBlank(e.target.value) })}
                   placeholder="Book a week ahead"
-                />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className={label}>Rough cost</span>
-                <input
-                  className={field}
-                  value={draft.price_band ?? ""}
-                  onChange={(e) =>
-                    setDraft({ ...draft, price_band: nullIfBlank(e.target.value) })
-                  }
-                  placeholder="¥¥"
                 />
               </label>
             </div>

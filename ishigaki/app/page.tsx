@@ -28,7 +28,7 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 });
 
 const PLACE_COLUMNS =
-  "id,name,name_ja,category,area,blurb,notes,lat,lng,must_do,booking,best_time,price_band,website";
+  "id,name,name_ja,category,area,blurb,notes,lat,lng,must_do,booking,best_time,website";
 
 export default function GuidePage() {
   const router = useRouter();

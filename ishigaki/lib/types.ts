@@ -19,7 +19,6 @@ export type Place = {
   must_do: boolean;
   booking: string | null;
   best_time: string | null;
-  price_band: string | null;
   website: string | null;
   created_at?: string;
 };

@@ -14,7 +14,6 @@ create table if not exists places (
   must_do     boolean not null default false,
   booking     text,
   best_time   text,
-  price_band  text,
   website     text,
   created_at  timestamptz not null default now()
 );
