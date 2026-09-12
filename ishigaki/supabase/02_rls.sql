@@ -6,6 +6,17 @@
 alter table places enable row level security;
 alter table guide_admins enable row level security;
 
+-- Grants and RLS are two different gates and you need both: RLS decides
+-- which ROWS a role sees, grants decide whether it may touch the table at
+-- all. Without these, a signed-in reader gets "permission denied for table
+-- places" no matter how permissive the policies are. Nothing is granted to
+-- anon, so anonymous requests stay locked out at this layer too.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on places to authenticated;
+
+-- guide_admins is deliberately granted to nobody. is_guide_admin() is
+-- security definer, so it reads the table as its owner.
+
 -- guide_admins gets NO policies below: unreachable through the API by anon
 -- and authenticated alike. Only the service role and the security-definer
 -- is_guide_admin() function can see it.

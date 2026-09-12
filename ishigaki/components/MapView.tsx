@@ -76,15 +76,15 @@ export default function MapView({ places, selectedId, onSelect }: Props) {
       minZoom: 9,
     });
 
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      {
-        subdomains: "abcd",
-        maxZoom: 20,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      }
-    ).addTo(map);
+    // OpenStreetMap's own tiles: no API key, no account. Do not swap this for
+    // a prettier commercial basemap without checking its terms first — CARTO's
+    // Voyager style was here originally and started rendering "API key
+    // required" across the map once they closed off anonymous access.
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
 
     L.control.zoom({ position: "topright" }).addTo(map);
     map.on("click", () => onSelectRef.current(null));

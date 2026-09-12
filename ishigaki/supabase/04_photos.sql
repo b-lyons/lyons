@@ -22,6 +22,9 @@ create table if not exists place_photos (
 -- exposed between being created and being protected.
 alter table place_photos enable row level security;
 
+-- See the note in 02: grants are the other half of RLS, not a duplicate.
+grant select, insert, update, delete on place_photos to authenticated;
+
 create index if not exists place_photos_place_idx
   on place_photos (place_id, sort_order, created_at);
 
