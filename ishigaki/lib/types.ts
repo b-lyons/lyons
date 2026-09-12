@@ -1,9 +1,9 @@
 export type CategoryId =
   | "food"
   | "drink"
-  | "beach"
   | "daytrip"
   | "sights"
+  | "shop"
   | "practical";
 
 export type Place = {

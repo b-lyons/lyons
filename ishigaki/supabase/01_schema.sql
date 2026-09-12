@@ -5,7 +5,7 @@ create table if not exists places (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,
   name_ja     text,
-  category    text not null check (category in ('food','drink','beach','daytrip','sights','practical')),
+  category    text not null check (category in ('food','drink','daytrip','sights','shop','practical')),
   area        text,
   blurb       text,
   notes       text,

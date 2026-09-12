@@ -1,4 +1,4 @@
-import { Info, Martini, Mountain, Ship, Umbrella, UtensilsCrossed } from "lucide-react";
+import { Info, Martini, Mountain, Ship, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import type { CategoryId } from "./types";
 
 export type Category = {
@@ -29,14 +29,6 @@ export const CATEGORIES: Category[] = [
     glyph: '<path d="M4 5h16l-8 8Z"/><path d="M12 13v6"/><path d="M8 19h8"/>',
   },
   {
-    id: "beach",
-    label: "Beaches",
-    short: "Beach",
-    color: "#12A3BC",
-    icon: Umbrella,
-    glyph: '<path d="M12 12v9"/><path d="M3 12a9 9 0 0 1 18 0Z"/>',
-  },
-  {
     id: "daytrip",
     label: "Day trips",
     short: "Trips",
@@ -46,11 +38,22 @@ export const CATEGORIES: Category[] = [
   },
   {
     id: "sights",
-    label: "Sights & nature",
+    label: "See & do",
     short: "See",
     color: "#3B8F58",
+    // A compass suits the broadened label better, but its needle turns to
+    // mush at 30px. The label carries the meaning; the pin just has to be
+    // legible, and a mountain is.
     icon: Mountain,
     glyph: '<path d="M3 20 10 7l4 7 2-3 5 9Z"/>',
+  },
+  {
+    id: "shop",
+    label: "Shopping",
+    short: "Shop",
+    color: "#12A3BC",
+    icon: ShoppingBag,
+    glyph: '<path d="M5 8h14l-1.2 12H6.2Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   },
   {
     id: "practical",

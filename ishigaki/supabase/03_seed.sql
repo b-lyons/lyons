@@ -65,32 +65,32 @@ insert into places (name, name_ja, category, area, blurb, notes, lat, lng, must_
  24.3543, 124.1444, false, null, 'Rainy afternoons'),
 
 -- ── Beaches ──────────────────────────────────────────────────────────────────
-('Yonehara Beach', '米原ビーチ', 'beach', 'Yonehara',
+('Yonehara Beach', '米原ビーチ', 'sights', 'Yonehara',
  'The best shore snorkelling on the island — living coral and fish start a few metres off the sand.',
  'Take this seriously: there is a strong current past the reef edge and no lifeguard. Stay inside the reef, wear a rash guard against the sun, and watch for stonefish — reef shoes help.',
  24.4616, 124.1878, true, null, 'High tide on a calm morning'),
 
-('Sukuji Beach', '底地ビーチ', 'beach', 'Kabira',
+('Sukuji Beach', '底地ビーチ', 'sights', 'Kabira',
  'A long, shallow, calm crescent just around the headland from Kabira — the easy swimming beach.',
  'Showers and toilets in season. Not much coral, but safe and very pretty.',
  24.4589, 124.1337, false, null, null),
 
-('Fusaki Beach', 'フサキビーチ', 'beach', 'West coast',
+('Fusaki Beach', 'フサキビーチ', 'sights', 'West coast',
  'West-facing resort beach with a long wooden pier pointing straight at the sunset over Taketomi.',
  'The pier is open to non-guests and is one of the nicest places on the island at dusk.',
  24.3734, 124.1237, false, null, 'Sunset'),
 
-('Maezato Beach', '真栄里ビーチ', 'beach', 'Ishigaki City',
+('Maezato Beach', '真栄里ビーチ', 'sights', 'Ishigaki City',
  'The closest swimmable beach to town, about ten minutes by car.',
  'Netted swimming area in season. Convenient rather than spectacular.',
  24.3355, 124.1731, false, null, null),
 
-('Sunset Beach', 'サンセットビーチ', 'beach', 'North',
+('Sunset Beach', 'サンセットビーチ', 'sights', 'North',
  'White sand and very clear, shallow water near the top of the island.',
  'Worth the detour if you are already driving to Hirakubozaki. Facilities are seasonal.',
  24.5576, 124.2822, false, null, 'Late afternoon'),
 
-('Shiraho Reef', '白保海岸', 'beach', 'East coast',
+('Shiraho Reef', '白保海岸', 'sights', 'East coast',
  'The village beach at Shiraho, fronting the largest blue coral colony in the northern hemisphere.',
  'The coral is offshore, so you need a boat — local operators in the village run short snorkel trips. The beach itself is for looking, not swimming.',
  24.3594, 124.2281, false, 'Book a village snorkel boat a day ahead', 'Calm mornings'),
@@ -200,7 +200,7 @@ insert into places (name, name_ja, category, area, blurb, notes, lat, lng, must_
  'Two operators run near-identical schedules and you buy on the day at the counter. Hateruma boats cancel often in wind.',
  24.3364, 124.1553, true, null, null),
 
-('Euglena Mall', 'ユーグレナモール', 'practical', 'Ishigaki City',
+('Euglena Mall', 'ユーグレナモール', 'shop', 'Ishigaki City',
  'The covered shopping arcade in the middle of town — souvenirs, Ishigaki salt, chilli oil, T-shirts and a supermarket.',
  'Where to buy things to take home on the last afternoon.',
  24.3399, 124.1560, false, null, null),
