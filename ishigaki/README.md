@@ -63,11 +63,13 @@ Then, in the SQL editor, run in order:
 
 1. `supabase/01_schema.sql` — the `places` and `guide_admins` tables, and the
    `is_guide_admin()` helper.
-2. `supabase/02_rls.sql` — the policies.
-3. `supabase/03_seed.sql` — 39 starter places. It begins with `delete from
-   places`, so drop that line once you have started editing.
-4. `supabase/04_photos.sql` — the `place_photos` table and the private
-   `place-photos` storage bucket, with matching policies.
+2. `supabase/02_rls.sql` — the policies and the table grants.
+3. `supabase/04_photos.sql` — the `place_photos` table and the private
+   `place-photos` storage bucket.
+4. `supabase/backup.sql` — the contents of the guide.
+
+`05`, `06` and `07` are migrations for projects set up under an earlier schema.
+A fresh project never needs them; `01` already creates the final shape.
 
 Then make yourself an editor:
 
@@ -155,24 +157,33 @@ Defined in `lib/categories.ts` — id, label, colour and the glyph drawn inside
 the map pin. Adding one means adding it there, to the `CategoryId` union in
 `lib/types.ts`, and to the `check` constraint on `places.category`.
 
-## About the seed data
+## About the data
 
-The starter places are pitched at what a friend visiting for the first time
-would want: what each place is, whether it is worth the drive, and the
-practical catch. Two caveats worth knowing before you hand the link over:
+`supabase/backup.sql` is an export of the live guide, not a starter set. It
+keeps row ids, because `place_photos.place_id` is a foreign key and an import
+that generated fresh uuids would orphan every photo. Every insert is
+`on conflict (id) do nothing`, so re-running it restores what is missing and
+leaves everything else alone.
 
-- **Coordinates are close, not surveyed.** They will put you on the right
-  headland or the right block, and for the big landmarks they are good. Spot-
-  check the restaurants and bars against Google Maps and nudge them in `/admin`.
-- **No opening hours or phone numbers are stored**, deliberately — they go
-  stale and inventing them would be worse than omitting them. Every place has a
-  **Look up** button that runs a Google Maps search on its Japanese name, which
-  is where the current hours actually live.
-- **No photos ship with it.** Nothing is seeded, because the photos worth
-  having here are your own. A place without any keeps the plain coloured card;
-  add one and it grows a hero image and a gallery. Watch what you upload
-  straight off a phone, though — a 5 MB original is 5 MB down someone''s mobile
-  data on a trip, so resize before uploading if you are adding a lot.
+Re-export whenever the guide has changed enough to be worth keeping:
 
-The restaurant and bar entries are the ones most worth your own pass: they
-change hands, and your opinion is the point of the guide.
+```sql
+select string_agg(
+  format('(%L,%L,%L,%L,%L,%L,%L,%L,%L,%L,%L,%L,%L)',
+    id, name, name_ja, category, area, blurb, notes, lat, lng, must_do,
+    booking, best_time, website),
+  E',\n' order by name)
+from places;
+```
+
+and the same shape for `place_photos` (`id, place_id, storage_path,
+external_url, caption, credit, sort_order`). Paste each result under the
+matching header in the file.
+
+Note the query deliberately emits no `insert into` line: Supabase's SQL editor
+scans query text for dangerous statements and flags one that merely contains
+those words as data.
+
+**The image files are not in here.** They are binaries in the `place-photos`
+bucket, so restoring from this file alone gives working text and broken
+pictures. Download the bucket separately if the photos matter.
