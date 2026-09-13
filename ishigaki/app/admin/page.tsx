@@ -199,14 +199,27 @@ export default function AdminPage() {
       return;
     }
 
-    const res = await fetch("/api/admin/create-user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ email: inviteEmail, password: invitePassword }),
-    });
+    const post = (bearer: string) =>
+      fetch("/api/admin/create-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${bearer}`,
+        },
+        body: JSON.stringify({ email: inviteEmail, password: invitePassword }),
+      });
+
+    let res = await post(token);
+
+    // Access tokens last an hour, and this form tends to be used from a tab
+    // that has been open a long time. A 401 usually just means the token went
+    // stale, so refresh once and try again before bothering the user.
+    if (res.status === 401) {
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      const newToken = refreshed.session?.access_token;
+      if (newToken) res = await post(newToken);
+    }
+
     const body = await res.json();
 
     setInviting(false);
