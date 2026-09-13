@@ -11,8 +11,13 @@ alter table guide_admins enable row level security;
 -- all. Without these, a signed-in reader gets "permission denied for table
 -- places" no matter how permissive the policies are. Nothing is granted to
 -- anon, so anonymous requests stay locked out at this layer too.
-grant usage on schema public to authenticated;
+grant usage on schema public to authenticated, service_role;
 grant select, insert, update, delete on places to authenticated;
+
+-- service_role is BYPASSRLS, which only skips policies — it still needs the
+-- table grant. Anything server-side (the keepalive cron, image conversion)
+-- fails with "permission denied" without this.
+grant all privileges on places to service_role;
 
 -- guide_admins is deliberately granted to nobody. is_guide_admin() is
 -- security definer, so it reads the table as its owner.

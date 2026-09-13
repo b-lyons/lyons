@@ -24,6 +24,7 @@ alter table place_photos enable row level security;
 
 -- See the note in 02: grants are the other half of RLS, not a duplicate.
 grant select, insert, update, delete on place_photos to authenticated;
+grant all privileges on place_photos to service_role;
 
 create index if not exists place_photos_place_idx
   on place_photos (place_id, sort_order, created_at);
