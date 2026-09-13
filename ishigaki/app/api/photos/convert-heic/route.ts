@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
+import heicConvert from "heic-convert";
 import { requireEditor } from "@/lib/apiAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { PHOTO_BUCKET } from "@/lib/photos";
@@ -13,6 +14,36 @@ const MAX_EDGE = 2400;
 
 export function isHeic(path: string) {
   return /\.(heic|heif)$/i.test(path);
+}
+
+/** Honour EXIF orientation before metadata is stripped, or phones come out sideways. */
+function encodeJpeg(pipeline: Sharp) {
+  return pipeline
+    .rotate()
+    .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 82, mozjpeg: true })
+    .toBuffer();
+}
+
+/**
+ * Decode to JPEG, native first and wasm second.
+ *
+ * sharp is far faster, but its prebuilt libheif carries no HEVC decoder —
+ * omitted over patent licensing — and HEVC is exactly what an iPhone writes.
+ * It decodes AV1-based HEIF happily, which makes the gap easy to miss unless
+ * you test with a real phone photo. libheif-js compiles libde265 to wasm and
+ * handles those, so it catches what sharp drops.
+ */
+async function toJpeg(input: Buffer): Promise<{ buffer: Buffer; decoder: string }> {
+  try {
+    return { buffer: await encodeJpeg(sharp(input)), decoder: "sharp" };
+  } catch {
+    const decoded = await heicConvert({ buffer: input, format: "JPEG", quality: 0.92 });
+    return {
+      buffer: await encodeJpeg(sharp(Buffer.from(decoded))),
+      decoder: "libheif",
+    };
+  }
 }
 
 /**
@@ -51,7 +82,7 @@ export async function POST(request: NextRequest) {
       typeof r.storage_path === "string" && isHeic(r.storage_path)
   );
 
-  const converted: { id: string; from: string; to: string }[] = [];
+  const converted: { id: string; from: string; to: string; decoder: string }[] = [];
   const failed: { id: string; error: string }[] = [];
 
   for (const row of targets) {
@@ -63,13 +94,7 @@ export async function POST(request: NextRequest) {
         throw new Error(downloadError?.message ?? "could not download");
       }
 
-      const jpeg = await sharp(Buffer.from(await file.arrayBuffer()))
-        // Honour EXIF orientation before stripping metadata, or phone photos
-        // come out sideways.
-        .rotate()
-        .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })
-        .jpeg({ quality: 82, mozjpeg: true })
-        .toBuffer();
+      const { buffer: jpeg, decoder } = await toJpeg(Buffer.from(await file.arrayBuffer()));
 
       const newPath = row.storage_path.replace(/\.(heic|heif)$/i, ".jpg");
       const { error: uploadError } = await admin.storage
@@ -86,7 +111,7 @@ export async function POST(request: NextRequest) {
       if (updateError) throw new Error(updateError.message);
 
       await admin.storage.from(PHOTO_BUCKET).remove([row.storage_path]);
-      converted.push({ id: row.id, from: row.storage_path, to: newPath });
+      converted.push({ id: row.id, from: row.storage_path, to: newPath, decoder });
     } catch (e) {
       failed.push({ id: row.id, error: e instanceof Error ? e.message : String(e) });
     }

@@ -122,7 +122,11 @@ export default function AdminPage() {
     setMessage(null);
     try {
       const result = await convertHeicPhotos();
-      const parts = [`Converted ${result.converted.length} photo(s) to JPEG.`];
+      const decoders = Array.from(new Set(result.converted.map((c) => c.decoder)));
+      const parts = [
+        `Converted ${result.converted.length} photo(s) to JPEG` +
+          (decoders.length > 0 ? ` via ${decoders.join(" and ")}.` : "."),
+      ];
       if (result.failed.length > 0) {
         parts.push(`${result.failed.length} failed: ${result.failed[0].error}`);
       }

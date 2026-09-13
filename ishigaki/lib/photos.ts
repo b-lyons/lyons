@@ -96,7 +96,7 @@ export async function convertHeicPhotos(photoIds?: string[]) {
   if (!res.ok) throw new Error(body.error ?? "Could not convert those photos.");
 
   return body as {
-    converted: { id: string; from: string; to: string }[];
+    converted: { id: string; from: string; to: string; decoder: string }[];
     failed: { id: string; error: string }[];
     scanned: number;
   };
