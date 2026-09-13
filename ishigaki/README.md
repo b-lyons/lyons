@@ -116,6 +116,21 @@ To serve it under a sub-path of the main site rather than its own domain, set
 out to its own repository later, copy this directory — nothing in it reaches
 up into the parent.
 
+## Keeping Supabase awake
+
+Free projects pause after about a week without requests, and restoring one is
+a manual click — which nobody notices until a guest opens the guide and finds
+it dead. `app/api/keepalive/route.ts` runs one real query against Postgres,
+and `vercel.json` has Vercel Cron call it daily.
+
+Set `CRON_SECRET` in the Vercel project to keep the route private; Vercel
+sends it as a bearer token on cron invocations automatically. Without it the
+route still runs, so a missing variable cannot silently break the thing that
+exists to prevent a silent failure.
+
+This protects availability, not data. A warm database is no help if the
+contents are gone — that needs an export.
+
 ## Editing the guide
 
 `/admin` is the editor, visible only to emails in `guide_admins`:
