@@ -121,7 +121,9 @@ export default function AdminPage() {
     setConverting(true);
     setMessage(null);
     try {
-      const result = await convertHeicPhotos();
+      const result = await convertHeicPhotos(undefined, (done) =>
+        setMessage({ kind: "ok", text: `Converting… ${done} done so far.` })
+      );
       const decoders = Array.from(new Set(result.converted.map((c) => c.decoder)));
       const parts = [
         `Converted ${result.converted.length} photo(s) to JPEG` +

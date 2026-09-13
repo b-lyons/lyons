@@ -77,11 +77,16 @@ export function isHeicPath(path: string) {
   return /\.(heic|heif)$/i.test(path);
 }
 
-/**
- * Ask the server to re-encode HEIC photos as JPEG, in place.
- * Omit photoIds to sweep every HEIC still in the table.
- */
-export async function convertHeicPhotos(photoIds?: string[]) {
+type ConvertResult = {
+  converted: { id: string; from: string; to: string; decoder: string }[];
+  failed: { id: string; error: string }[];
+  remaining: number;
+};
+
+/** The server converts a few per request; see MAX_PER_REQUEST in the route. */
+const CONVERT_CHUNK = 3;
+
+async function postConvert(photoIds?: string[]): Promise<ConvertResult> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Your session has expired. Sign out, sign in again, then retry.");
@@ -92,12 +97,55 @@ export async function convertHeicPhotos(photoIds?: string[]) {
     body: JSON.stringify(photoIds ? { photoIds } : {}),
   });
 
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.error ?? "Could not convert those photos.");
+  // A timed-out function returns an HTML error page, so parsing blindly gives
+  // an unhelpful "string did not match the expected pattern" from the browser.
+  const text = await res.text();
+  try {
+    const body = JSON.parse(text) as ConvertResult & { error?: string };
+    if (!res.ok) throw new Error(body.error ?? "Could not convert those photos.");
+    return body;
+  } catch (e) {
+    if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
+    throw new Error(
+      `The server did not return a result (HTTP ${res.status}). Conversion is ` +
+        "probably taking too long; run it again and it will carry on where it stopped."
+    );
+  }
+}
 
-  return body as {
-    converted: { id: string; from: string; to: string; decoder: string }[];
-    failed: { id: string; error: string }[];
-    scanned: number;
-  };
+/**
+ * Re-encode HEIC photos as JPEG, in place.
+ *
+ * Omit photoIds to sweep every HEIC still in the table. Either way the work is
+ * split across several requests, because the decoder is slow enough that a
+ * large batch would exceed the function time limit.
+ */
+export async function convertHeicPhotos(
+  photoIds?: string[],
+  onProgress?: (converted: number) => void
+) {
+  const converted: ConvertResult["converted"] = [];
+  const failed: ConvertResult["failed"] = [];
+
+  if (photoIds) {
+    for (let i = 0; i < photoIds.length; i += CONVERT_CHUNK) {
+      const batch = await postConvert(photoIds.slice(i, i + CONVERT_CHUNK));
+      converted.push(...batch.converted);
+      failed.push(...batch.failed);
+      onProgress?.(converted.length);
+    }
+    return { converted, failed };
+  }
+
+  for (;;) {
+    const batch = await postConvert();
+    converted.push(...batch.converted);
+    failed.push(...batch.failed);
+    onProgress?.(converted.length);
+    // Stop on no remaining work, or on a batch that achieved nothing — better
+    // to report the failures than to spin on them.
+    if (batch.remaining === 0 || batch.converted.length === 0) break;
+  }
+
+  return { converted, failed };
 }

@@ -12,6 +12,14 @@ export const maxDuration = 60;
 /** Longest edge, in pixels. Phone originals are far larger than a card needs. */
 const MAX_EDGE = 2400;
 
+/**
+ * Photos per invocation. The wasm decoder takes seconds per file and the
+ * function is capped at 60s, so a large sweep has to be split across several
+ * requests — a timeout returns an HTML error page, not JSON, and loses the
+ * work in flight. The caller repeats until `remaining` reaches zero.
+ */
+const MAX_PER_REQUEST = 3;
+
 export function isHeic(path: string) {
   return /\.(heic|heif)$/i.test(path);
 }
@@ -77,10 +85,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const targets = (rows ?? []).filter(
+  const allTargets = (rows ?? []).filter(
     (r): r is { id: string; storage_path: string } =>
       typeof r.storage_path === "string" && isHeic(r.storage_path)
   );
+  const targets = allTargets.slice(0, MAX_PER_REQUEST);
 
   const converted: { id: string; from: string; to: string; decoder: string }[] = [];
   const failed: { id: string; error: string }[] = [];
@@ -117,5 +126,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ converted, failed, scanned: targets.length });
+  return NextResponse.json({
+    converted,
+    failed,
+    scanned: targets.length,
+    remaining: allTargets.length - targets.length,
+  });
 }
