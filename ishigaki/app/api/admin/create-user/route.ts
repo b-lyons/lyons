@@ -9,9 +9,22 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
  * from the request body.
  */
 export async function POST(request: NextRequest) {
-  const token = request.headers.get("authorization")?.replace("Bearer ", "");
-  if (!token) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  // These failures have different causes and different fixes, so say which.
+  // The detail only reaches someone who already holds a session.
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return NextResponse.json(
+      { error: "No authorization header reached the server." },
+      { status: 401 }
+    );
+  }
+
+  const token = authHeader.slice("Bearer ".length).trim();
+  if (!token || token === "undefined" || token === "null") {
+    return NextResponse.json(
+      { error: "The browser had no active session to send. Sign out, sign in again, then retry." },
+      { status: 401 }
+    );
   }
 
   const asCaller = createClient(
@@ -22,12 +35,28 @@ export async function POST(request: NextRequest) {
 
   const { data: caller, error: callerError } = await asCaller.auth.getUser(token);
   if (callerError || !caller.user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: `Supabase rejected the session token: ${
+          callerError?.message ?? "no user returned"
+        }`,
+      },
+      { status: 401 }
+    );
   }
 
   const { data: isAdmin, error: adminError } = await asCaller.rpc("is_guide_admin");
-  if (adminError || isAdmin !== true) {
-    return NextResponse.json({ error: "Not an editor of this guide" }, { status: 403 });
+  if (adminError) {
+    return NextResponse.json(
+      { error: `Could not check editor status: ${adminError.message}` },
+      { status: 403 }
+    );
+  }
+  if (isAdmin !== true) {
+    return NextResponse.json(
+      { error: `${caller.user.email} is not listed in guide_admins.` },
+      { status: 403 }
+    );
   }
 
   const { email, password } = await request.json();

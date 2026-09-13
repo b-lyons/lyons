@@ -190,6 +190,14 @@ export default function AdminPage() {
 
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
+    if (!token) {
+      setInviting(false);
+      setMessage({
+        kind: "err",
+        text: "Your session has expired. Sign out, sign in again, then retry.",
+      });
+      return;
+    }
 
     const res = await fetch("/api/admin/create-user", {
       method: "POST",
