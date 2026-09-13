@@ -46,7 +46,7 @@ export default function LoginPage() {
 
         <div className="rounded-2xl border border-abyss-2 bg-abyss-2/60 p-8">
           <p className="mb-6 text-center text-[13px] text-chrome-muted">
-            A private guide. Sign in to see the map.
+            A guide to the island. Sign in to see the map.
           </p>
 
           <form onSubmit={signIn} className="flex flex-col gap-5">

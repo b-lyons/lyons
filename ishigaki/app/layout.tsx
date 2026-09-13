@@ -16,7 +16,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Ishigaki — a guide",
-  description: "A private guide to Ishigaki and the Yaeyama islands.",
+  description: "A guide to Ishigaki and the Yaeyama islands.",
   // Belt and braces alongside app/robots.ts: this guide is not for indexing.
   robots: {
     index: false,

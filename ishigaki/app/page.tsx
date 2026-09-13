@@ -210,7 +210,7 @@ export default function GuidePage() {
             <div>
               <BrandMark />
               <p className="mt-1.5 text-[12px] leading-relaxed text-chrome-muted">
-                A private guide to the island and the Yaeyamas.
+                A guide to the island and the Yaeyamas.
               </p>
             </div>
           </div>
