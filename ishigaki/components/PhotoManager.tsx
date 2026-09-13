@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   PHOTO_BUCKET,
   PHOTO_COLUMNS,
+  convertHeicPhotos,
+  isHeicPath,
   resolvePhotoUrls,
   uploadPhoto,
 } from "@/lib/photos";
@@ -64,15 +66,23 @@ export function PhotoManager({
     setBusy(true);
     try {
       let order = photos.length;
+      const heicIds: string[] = [];
+
       for (const file of Array.from(files)) {
         const path = await uploadPhoto(placeId, file);
-        const { error } = await supabase.from("place_photos").insert({
-          place_id: placeId,
-          storage_path: path,
-          sort_order: order++,
-        });
+        const { data: row, error } = await supabase
+          .from("place_photos")
+          .insert({ place_id: placeId, storage_path: path, sort_order: order++ })
+          .select("id")
+          .single();
         if (error) throw new Error(error.message);
+        if (isHeicPath(path)) heicIds.push(row.id);
       }
+
+      // Straight off an iPhone these are HEIC, which Chrome and Firefox
+      // cannot display at all. Convert before anyone sees a broken card.
+      if (heicIds.length > 0) await convertHeicPhotos(heicIds);
+
       reload();
     } catch (e) {
       onError(e instanceof Error ? e.message : "Upload failed.");

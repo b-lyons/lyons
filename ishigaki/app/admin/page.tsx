@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { CATEGORIES, categoryFor } from "@/lib/categories";
 import type { CategoryId, Place, PlaceDraft } from "@/lib/types";
 import { PhotoManager } from "@/components/PhotoManager";
+import { convertHeicPhotos } from "@/lib/photos";
 
 const PLACE_COLUMNS =
   "id,name,name_ja,category,area,blurb,notes,lat,lng,must_do,booking,best_time,website";
@@ -80,6 +81,12 @@ export default function AdminPage() {
     []
   );
 
+  // Photos uploaded before the uploader converted them are still HEIC, which
+  // most browsers cannot display. Offer to sweep them, and disappear once none
+  // are left.
+  const [heicCount, setHeicCount] = useState(0);
+  const [converting, setConverting] = useState(false);
+
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
   const [inviting, setInviting] = useState(false);
@@ -97,9 +104,39 @@ export default function AdminPage() {
         return;
       }
       await reload();
+      await countHeic();
       setGate("ok");
     })();
   }, [router]);
+
+  async function countHeic() {
+    const { count } = await supabase
+      .from("place_photos")
+      .select("id", { count: "exact", head: true })
+      .or("storage_path.ilike.%.heic,storage_path.ilike.%.heif");
+    setHeicCount(count ?? 0);
+  }
+
+  async function convertHeic() {
+    setConverting(true);
+    setMessage(null);
+    try {
+      const result = await convertHeicPhotos();
+      const parts = [`Converted ${result.converted.length} photo(s) to JPEG.`];
+      if (result.failed.length > 0) {
+        parts.push(`${result.failed.length} failed: ${result.failed[0].error}`);
+      }
+      setMessage({
+        kind: result.failed.length > 0 ? "err" : "ok",
+        text: parts.join(" "),
+      });
+    } catch (e) {
+      setMessage({ kind: "err", text: e instanceof Error ? e.message : "Conversion failed." });
+    } finally {
+      setConverting(false);
+      await countHeic();
+    }
+  }
 
   async function reload() {
     const { data, error } = await supabase.from("places").select(PLACE_COLUMNS).order("name");
@@ -288,6 +325,24 @@ export default function AdminPage() {
           }`}
         >
           {message.text}
+        </div>
+      )}
+
+      {heicCount > 0 && (
+        <div className="mx-auto mt-4 flex max-w-6xl flex-wrap items-center justify-between gap-3 rounded-lg border border-coral/40 bg-coral/10 px-4 py-3">
+          <span className="text-[13px] text-ink">
+            {heicCount} photo{heicCount === 1 ? " is" : "s are"} still HEIC, which Chrome
+            and Firefox cannot display. Safari can, so they may look fine to you.
+          </span>
+          <button
+            type="button"
+            onClick={convertHeic}
+            disabled={converting}
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-abyss px-4 py-2 text-[12px] uppercase tracking-[.12em] text-sand transition-colors hover:bg-abyss-2 disabled:opacity-50"
+          >
+            {converting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Convert to JPEG
+          </button>
         </div>
       )}
 

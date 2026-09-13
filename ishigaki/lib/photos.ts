@@ -71,3 +71,33 @@ export async function uploadPhoto(placeId: string, file: File): Promise<string> 
   if (error) throw new Error(error.message);
   return path;
 }
+
+/** Most browsers cannot display HEIC — only Safari can. */
+export function isHeicPath(path: string) {
+  return /\.(heic|heif)$/i.test(path);
+}
+
+/**
+ * Ask the server to re-encode HEIC photos as JPEG, in place.
+ * Omit photoIds to sweep every HEIC still in the table.
+ */
+export async function convertHeicPhotos(photoIds?: string[]) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Your session has expired. Sign out, sign in again, then retry.");
+
+  const res = await fetch("/api/photos/convert-heic", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(photoIds ? { photoIds } : {}),
+  });
+
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error ?? "Could not convert those photos.");
+
+  return body as {
+    converted: { id: string; from: string; to: string }[];
+    failed: { id: string; error: string }[];
+    scanned: number;
+  };
+}
